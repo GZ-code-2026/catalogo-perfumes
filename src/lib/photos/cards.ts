@@ -1,6 +1,7 @@
 import "server-only";
 import type { PerfumeSummary, SimilarItem } from "../tenml/types";
 import { getPhotoService } from "./index";
+import { concentrationFromId } from "./match";
 
 export interface CardData {
   id: string;
@@ -11,9 +12,15 @@ export interface CardData {
 }
 
 // Junta cada perfume com a foto que já está em cache (nunca chama a Fragella).
+// A concentração vem do final do id (ex.: "-edp"), só como dica para mostrar.
 export async function toCards(items: (PerfumeSummary | SimilarItem)[]): Promise<CardData[]> {
   const fotos = await getPhotoService().getPhotosCacheOnly(
-    items.map((item) => ({ id: item.id, name: item.name, house: item.house })),
+    items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      house: item.house,
+      concentration: concentrationFromId(item.id) ?? undefined,
+    })),
   );
 
   return items.map((item) => ({

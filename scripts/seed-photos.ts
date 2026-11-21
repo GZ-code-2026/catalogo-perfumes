@@ -1,10 +1,10 @@
 // Pré-preenche as fotos da vitrine da home.
 // Uso: npm run seed:photos  (gasta a cota mensal da Fragella)
-import { searchPerfumes } from "../src/lib/tenml/client";
+import { getPerfume, searchPerfumes } from "../src/lib/tenml/client";
 import { searchFragrances } from "../src/lib/fragella/client";
 import { createPhotoService } from "../src/lib/photos/service";
 import { createSupabaseStore } from "../src/lib/photos/supabase-store";
-import { classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
+import { assuntoComConcentracao, classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
 
 const MAX_FALHAS_SEGUIDAS = 3;
 
@@ -41,10 +41,18 @@ async function main() {
           break;
         }
 
-        const url = await service.getPhoto(p, { allowFetch: true });
+        const nome = `${p.house} — ${p.name}`;
+
+        // Busca a concentração no detalhe da 10ML; sem ela, a foto poderia ser da versão errada.
+        const assunto = await assuntoComConcentracao(p, getPerfume);
+        if (!assunto) {
+          console.log(`· sem detalhe na 10ML, pulado  ${nome}`);
+          continue;
+        }
+
+        const url = await service.getPhoto(assunto, { allowFetch: true });
         const cached = url ? null : await store.getCached(p.id);
         const resultado = classificar(url, cached);
-        const nome = `${p.house} — ${p.name}`;
 
         if (resultado === "foto") {
           encontradas++;

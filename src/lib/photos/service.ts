@@ -24,6 +24,7 @@ export function createPhotoService(deps: {
   const now = deps.now ?? (() => new Date());
 
   // Passo 3: procura nos resultados da Fragella já vistos; se casar, grava no cache.
+  // Só o getPhoto usa esta função, porque ele recebe os dados completos (com concentração).
   async function fromSeen(store: PhotoStore, p: PhotoSubject): Promise<string | null> {
     const key = toKey(p.house, p.name, p.concentration);
     const match = findMatch(key, await store.findSeenByBrand(key.brand));
@@ -102,7 +103,11 @@ export function createPhotoService(deps: {
           if (entry) {
             result.set(p.id, entry.imageUrl);
           } else if (`${p.house} ${p.name}`.trim() !== '') {
-            result.set(p.id, await fromSeen(store, p));
+            // Só para mostrar: os resumos da busca não trazem a concentração,
+            // então aqui nunca gravamos nada no cache.
+            const key = toKey(p.house, p.name, p.concentration);
+            const match = findMatch(key, await store.findSeenByBrand(key.brand));
+            result.set(p.id, match ? match.imageUrl : null);
           }
         }
       } catch (error) {

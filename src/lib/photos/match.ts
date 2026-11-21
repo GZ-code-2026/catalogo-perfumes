@@ -60,6 +60,22 @@ function findConcentration(normalized: string): Concentration | null {
   return null;
 }
 
+// Lê a concentração do final do id da 10ML (ex.: "creed-green-irish-tweed-edp" → "EDP").
+// Serve só como dica para mostrar fotos; nunca para gravar no cache.
+const ID_SUFFIXES: Record<string, string> = {
+  edp: 'EDP',
+  edt: 'EDT',
+  parfum: 'Parfum',
+  extrait: 'Extrait',
+  edc: 'EDC',
+};
+
+export function concentrationFromId(id: string): string | null {
+  const parts = id.toLowerCase().split('-');
+  if (parts.length < 2) return null;
+  return ID_SUFFIXES[parts[parts.length - 1]] ?? null;
+}
+
 export function parseConcentration(s: string | null | undefined): Concentration | null {
   if (!s) return null;
   return findConcentration(normalizeText(s));

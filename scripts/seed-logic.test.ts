@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
+import { describe, expect, it, vi } from "vitest";
+import { assuntoComConcentracao, classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
 
 describe("classificar", () => {
   it("foto quando há url", () => {
@@ -30,5 +30,26 @@ describe("variaveisFaltando", () => {
       "SUPABASE_SERVICE_ROLE_KEY",
       "FRAGELLA_API_KEY",
     ]);
+  });
+});
+
+describe("assuntoComConcentracao", () => {
+  const resumo = { id: "creed-green-irish-tweed-edp", name: "Green Irish Tweed", house: "Creed" };
+
+  it("busca o detalhe e usa a concentração dele", async () => {
+    const buscarDetalhe = vi.fn(async () => ({ concentration: "EDP" }));
+    expect(await assuntoComConcentracao(resumo, buscarDetalhe)).toEqual({ ...resumo, concentration: "EDP" });
+    expect(buscarDetalhe).toHaveBeenCalledWith("creed-green-irish-tweed-edp");
+  });
+
+  it("devolve null quando o detalhe não existe", async () => {
+    expect(await assuntoComConcentracao(resumo, async () => null)).toBeNull();
+  });
+
+  it("devolve null quando a 10ML falha", async () => {
+    const falha = async () => {
+      throw new Error("fora do ar");
+    };
+    expect(await assuntoComConcentracao(resumo, falha)).toBeNull();
   });
 });

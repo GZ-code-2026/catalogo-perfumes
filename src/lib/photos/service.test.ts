@@ -121,6 +121,26 @@ describe('createPhotoService', () => {
     expect(search).not.toHaveBeenCalled();
   });
 
+  it('getPhotosCacheOnly mostra a foto de seen sem concentração, mas não grava nada', async () => {
+    const { store, service } = setup();
+    // Resumo da busca: sem concentração. Visto na Fragella: EDP.
+    await store.addSeen([seenEntry('Creed', 'Green Irish Tweed', 'https://x/edp.png', 'edp')]);
+    const map = await service.getPhotosCacheOnly([{ id: 'git', name: 'Green Irish Tweed', house: 'Creed' }]);
+    expect(map.get('git')).toBe('https://x/edp.png');
+    expect(await store.getCached('git')).toBeNull();
+  });
+
+  it('getPhotosCacheOnly nunca chama saveCached', async () => {
+    const { store, service } = setup();
+    await store.addSeen([seenEntry('Dior', 'Sauvage', 'https://x/seen.png', 'edt')]);
+    const saveSpy = vi.spyOn(store, 'saveCached');
+    await service.getPhotosCacheOnly([
+      { id: 'b', name: 'Sauvage', house: 'Dior', concentration: 'EDT' },
+      { id: 'c', name: 'Sauvage', house: 'Dior' },
+    ]);
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
   it('se o store falha, devolve null e registra o erro', async () => {
     const boom = async () => {
       throw new Error('supabase fora do ar');

@@ -1,4 +1,5 @@
 import {
+  concentrationFromId,
   findMatch,
   jaroWinkler,
   normalizeBrand,
@@ -71,4 +72,16 @@ test('duas palavras diferentes não casam', () =>
 test('jaroWinkler', () => {
   expect(jaroWinkler('martha', 'marhta')).toBeCloseTo(0.961, 2);
   expect(jaroWinkler('abc', 'abc')).toBe(1);
+});
+
+test('concentrationFromId lê a concentração do final do id', () => {
+  expect(concentrationFromId('creed-green-irish-tweed-edp')).toBe('EDP');
+  expect(concentrationFromId('dior-sauvage-edt')).toBe('EDT');
+  expect(concentrationFromId('chanel-no-5-parfum')).toBe('Parfum');
+  expect(concentrationFromId('mfk-baccarat-rouge-540-extrait')).toBe('Extrait');
+  expect(concentrationFromId('4711-original-edc')).toBe('EDC');
+  expect(concentrationFromId('DIOR-SAUVAGE-EDP')).toBe('EDP');
+  expect(concentrationFromId('dior-sauvage')).toBeNull();
+  expect(concentrationFromId('edp-algo')).toBeNull();
+  expect(concentrationFromId('')).toBeNull();
 });
