@@ -20,10 +20,7 @@ export function SearchBox({ initialQuery = "" }: { initialQuery?: string }) {
       return;
     }
     const text = query.trim();
-    if (text.length < 2) {
-      setItems([]);
-      return;
-    }
+    if (text.length < 2) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -54,7 +51,7 @@ export function SearchBox({ initialQuery = "" }: { initialQuery?: string }) {
     router.push("/busca?q=" + encodeURIComponent(text));
   }
 
-  const showList = open && items.length > 0;
+  const showList = open && query.trim().length >= 2 && items.length > 0;
 
   return (
     <form onSubmit={submit} role="search" className="relative w-full">
