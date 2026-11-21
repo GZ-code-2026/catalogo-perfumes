@@ -1,5 +1,5 @@
 import { pickImage, type FragellaItem } from '../fragella/client';
-import { findMatch, toKey, type MatchCandidate } from './match';
+import { findMatch, toKey, type MatchCandidate, type PhotoKey } from './match';
 import type { PhotoStore } from './store';
 
 export interface PhotoSubject {
@@ -102,18 +102,37 @@ export function createPhotoService(deps: {
       if (!store) return result;
       try {
         const cached = await store.getCachedMany(ps.map((p) => p.id));
+
+        // Quem não está no cache é agrupado por marca: uma consulta ao banco por marca.
+        const porMarca = new Map<string, { id: string; key: PhotoKey }[]>();
         for (const p of ps) {
           const entry = cached.get(p.id);
           if (entry) {
             result.set(p.id, entry.imageUrl);
           } else if (`${p.house} ${p.name}`.trim() !== '') {
-            // Só para mostrar: os resumos da busca não trazem a concentração,
-            // então aqui nunca gravamos nada no cache.
             const key = toKey(p.house, p.name, p.concentration);
-            const match = findMatch(key, await store.findSeenByBrand(key.brand));
-            result.set(p.id, match ? match.imageUrl : null);
+            const grupo = porMarca.get(key.brand) ?? [];
+            grupo.push({ id: p.id, key });
+            porMarca.set(key.brand, grupo);
           }
         }
+
+        // As marcas são consultadas em paralelo; se uma falhar, só os perfumes dela ficam sem foto.
+        // Só para mostrar: os resumos da busca não trazem a concentração,
+        // então aqui nunca gravamos nada no cache.
+        await Promise.all(
+          [...porMarca].map(async ([brand, grupo]) => {
+            try {
+              const seen = await store.findSeenByBrand(brand);
+              for (const { id, key } of grupo) {
+                const match = findMatch(key, seen);
+                result.set(id, match ? match.imageUrl : null);
+              }
+            } catch (error) {
+              console.error('Erro no serviço de fotos:', error);
+            }
+          }),
+        );
       } catch (error) {
         console.error('Erro no serviço de fotos:', error);
       }

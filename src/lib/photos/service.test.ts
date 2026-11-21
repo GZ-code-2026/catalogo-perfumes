@@ -151,6 +151,43 @@ describe('createPhotoService', () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
+  it('getPhotosCacheOnly consulta seen uma vez por marca', async () => {
+    const { store, service } = setup();
+    await store.addSeen([
+      seenEntry('Dior', 'Sauvage', 'https://x/sauvage.png'),
+      seenEntry('Dior', 'Fahrenheit', 'https://x/fahr.png'),
+      seenEntry('Chanel', 'Bleu de Chanel', 'https://x/bleu.png'),
+    ]);
+    const findSpy = vi.spyOn(store, 'findSeenByBrand');
+    const map = await service.getPhotosCacheOnly([
+      { id: '1', name: 'Sauvage', house: 'Dior' },
+      { id: '2', name: 'Fahrenheit', house: 'Dior' },
+      { id: '3', name: 'Bleu de Chanel', house: 'Chanel' },
+    ]);
+    expect(findSpy).toHaveBeenCalledTimes(2);
+    expect(map.get('1')).toBe('https://x/sauvage.png');
+    expect(map.get('2')).toBe('https://x/fahr.png');
+    expect(map.get('3')).toBe('https://x/bleu.png');
+  });
+
+  it('getPhotosCacheOnly: falha numa marca não atrapalha as outras', async () => {
+    const { store, service } = setup();
+    await store.addSeen([seenEntry('Chanel', 'Bleu de Chanel', 'https://x/bleu.png')]);
+    const original = store.findSeenByBrand.bind(store);
+    store.findSeenByBrand = async (brand) => {
+      if (brand === 'dior') throw new Error('falhou');
+      return original(brand);
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const map = await service.getPhotosCacheOnly([
+      { id: '1', name: 'Sauvage', house: 'Dior' },
+      { id: '3', name: 'Bleu de Chanel', house: 'Chanel' },
+    ]);
+    expect(map.get('1')).toBeNull();
+    expect(map.get('3')).toBe('https://x/bleu.png');
+    spy.mockRestore();
+  });
+
   it('se o store falha, devolve null e registra o erro', async () => {
     const boom = async () => {
       throw new Error('supabase fora do ar');
