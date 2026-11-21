@@ -108,7 +108,7 @@ Normalização: minúsculas, sem acentos, sem pontuação e espaços colapsados.
 
 Regra de casamento (conservadora, de acordo com o anti-objetivo):
 - A marca normalizada precisa ser **igual** (depois dos apelidos).
-- O nome normalizado precisa ser **igual**, **ou** ter similaridade ≥ 0,9 (Jaro-Winkler ou equivalente) **e** a mesma quantidade de palavras.
+- O nome normalizado precisa ser **igual**, **ou** ter a mesma quantidade de palavras, com todas iguais exceto **no máximo uma**, que pode ter só um erro de digitação (distância de Levenshtein ≤ 1, ambas com 4 ou mais letras). Nomes vazios nunca casam. *(Revisado na implementação: a regra original, Jaro-Winkler ≥ 0,9 no nome inteiro, aceitava "Acqua di Gio" como "Acqua di Gioia".)*
 - **Concentração (decisão do dono, para não mostrar frasco de versão irmã):** a concentração da 10ML vem do campo `concentration` ou, se faltar, do nome. A da Fragella vem de `OilType` ou do nome. Se as duas forem conhecidas e **diferentes**, **não casa**. Se só uma for conhecida, ou nenhuma, a concentração não bloqueia o casamento.
 - Se mais de um resultado casar, escolhe o de maior similaridade. Se empatar, não casa.
 
