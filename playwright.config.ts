@@ -15,9 +15,17 @@ export default defineConfig({
     {
       command: "npm run build && npm run start -- -p 3100",
       url: "http://localhost:3100",
-      reuseExistingServer: !process.env.CI,
+      // Nunca reaproveitar: um servidor antigo poderia usar variáveis reais.
+      reuseExistingServer: false,
       timeout: 240_000,
-      env: { TENML_BASE_URL: "http://localhost:4010/tenml" },
+      // Vazios ganham do .env.local (o Next não sobrescreve o que já está no ambiente).
+      env: {
+        TENML_BASE_URL: "http://localhost:4010/tenml",
+        FRAGELLA_BASE_URL: "http://localhost:4010/fragella",
+        FRAGELLA_API_KEY: "",
+        SUPABASE_URL: "",
+        SUPABASE_SERVICE_ROLE_KEY: "",
+      },
     },
   ],
 });

@@ -16,8 +16,8 @@ test("busca, resultados e detalhe do perfume", async ({ page }) => {
   await card.click();
   await expect(page).toHaveURL(/\/perfume\/dior-sauvage-edp/);
   await expect(page.getByRole("heading", { level: 1, name: "Sauvage Eau de Parfum" })).toBeVisible();
-  await expect(page.getByText("Topo")).toBeVisible();
-  await expect(page.getByRole("img").first()).toBeVisible();
+  await expect(page.getByText("Topo", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Sauvage Eau de Parfum, Dior" })).toBeVisible();
   await expect(page.getByRole("contentinfo")).toContainText("Data: 10ML Fragrance Index");
 });
 

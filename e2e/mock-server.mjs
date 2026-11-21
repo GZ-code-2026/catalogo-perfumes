@@ -15,6 +15,12 @@ createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORTA}`);
   const caminho = url.pathname;
 
+  // Nenhum teste pode chamar a Fragella: registra e falha.
+  if (caminho.startsWith("/fragella")) {
+    console.error(`[mock] ATENÇÃO: chamada inesperada à Fragella: ${req.method} ${req.url}`);
+    return responder(res, 500, { error: "Fragella não deve ser chamada nos testes" });
+  }
+
   if (req.method === "GET" && caminho === "/health") return responder(res, 200, { ok: true });
 
   if (req.method === "GET" && caminho === "/tenml/perfumes") {
