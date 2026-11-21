@@ -4,13 +4,9 @@ import { searchPerfumes } from "../src/lib/tenml/client";
 import { searchFragrances } from "../src/lib/fragella/client";
 import { createPhotoService } from "../src/lib/photos/service";
 import { createSupabaseStore } from "../src/lib/photos/supabase-store";
+import { classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
 
-// Devolve os nomes das variáveis obrigatórias que não estão preenchidas.
-export function variaveisFaltando(env: NodeJS.ProcessEnv): string[] {
-  return ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "FRAGELLA_API_KEY"].filter(
-    (nome) => !env[nome],
-  );
-}
+const MAX_FALHAS_SEGUIDAS = 3;
 
 async function main() {
   const faltando = variaveisFaltando(process.env);
@@ -19,9 +15,7 @@ async function main() {
     process.exit(1);
   }
 
-  const orcamento = Number(process.env.FRAGELLA_MONTHLY_BUDGET);
-  const budget = Number.isFinite(orcamento) && process.env.FRAGELLA_MONTHLY_BUDGET ? orcamento : 18;
-
+  const budget = lerOrcamento(process.env.FRAGELLA_MONTHLY_BUDGET);
   const store = createSupabaseStore(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -31,32 +25,60 @@ async function main() {
 
   let encontradas = 0;
   let semFoto = 0;
+  let falhas = 0;
+  let falhasSeguidas = 0;
   let cursor: string | undefined;
   let parar = false;
 
-  while (!parar) {
-    const pagina = await searchPerfumes({ iconic: true, limit: 20, cursor });
-    for (const p of pagina.results) {
-      const foto = await service.getPhoto(p, { allowFetch: true });
-      if (foto) {
-        encontradas++;
-        console.log(`✔ foto  ${p.house} — ${p.name}`);
-      } else {
-        semFoto++;
-        console.log(`· sem foto  ${p.house} — ${p.name}`);
-      }
-      if ((await store.getUsage(mes)) >= budget) {
-        console.log("⏸ orçamento esgotado");
-        parar = true;
-        break;
-      }
-    }
-    if (!pagina.nextCursor) break;
-    cursor = pagina.nextCursor;
-  }
+  try {
+    while (!parar) {
+      const pagina = await searchPerfumes({ iconic: true, limit: 20, cursor });
+      for (const p of pagina.results) {
+        // Antes de cada perfume: confere se ainda há orçamento.
+        if ((await store.getUsage(mes)) >= budget) {
+          console.log("⏸ orçamento esgotado");
+          parar = true;
+          break;
+        }
 
-  const uso = await store.getUsage(mes);
-  console.log(`\nEncontradas: ${encontradas} | Sem foto: ${semFoto} | Uso do mês: ${uso}/${budget}`);
+        const url = await service.getPhoto(p, { allowFetch: true });
+        const cached = url ? null : await store.getCached(p.id);
+        const resultado = classificar(url, cached);
+        const nome = `${p.house} — ${p.name}`;
+
+        if (resultado === "foto") {
+          encontradas++;
+          falhasSeguidas = 0;
+          console.log(`✔ foto  ${nome}`);
+        } else if (resultado === "sem-foto") {
+          semFoto++;
+          falhasSeguidas = 0;
+          console.log(`· sem foto  ${nome}`);
+        } else {
+          falhas++;
+          falhasSeguidas++;
+          console.log(`✖ falha ao buscar  ${nome}`);
+          if (falhasSeguidas >= MAX_FALHAS_SEGUIDAS) {
+            console.log("A Fragella parece indisponível; tente mais tarde.");
+            parar = true;
+            break;
+          }
+        }
+      }
+      if (!pagina.nextCursor) break;
+      cursor = pagina.nextCursor;
+    }
+  } finally {
+    let uso = "?";
+    try {
+      uso = String(await store.getUsage(mes));
+    } catch {
+      // mantém "?" se o banco não responder
+    }
+    console.log(
+      `\nEncontradas: ${encontradas} | Sem foto: ${semFoto} | Falhas: ${falhas} | Uso do mês: ${uso}/${budget}`,
+    );
+  }
 }
 
 main().catch((erro) => {
