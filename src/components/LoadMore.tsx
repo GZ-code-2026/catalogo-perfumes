@@ -41,7 +41,7 @@ export function LoadMore({ q, initialCursor }: LoadMoreProps) {
       )}
       {cursor && (
         <div className="mt-12 text-center">
-          {erro && <p className="mb-3 text-sm text-ink-soft">Não foi possível carregar mais</p>}
+          {erro && <p role="alert" className="mb-3 text-sm text-ink-soft">Não foi possível carregar mais</p>}
           <button
             type="button"
             onClick={carregarMais}

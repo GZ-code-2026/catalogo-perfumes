@@ -45,7 +45,7 @@ export default async function Busca({ searchParams }: Props) {
               <PerfumeCard key={card.id} card={card} />
             ))}
           </div>
-          <LoadMore q={q} initialCursor={page.nextCursor} />
+          <LoadMore key={q} q={q} initialCursor={page.nextCursor} />
         </>
       )}
     </main>
