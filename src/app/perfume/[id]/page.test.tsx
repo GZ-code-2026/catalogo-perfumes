@@ -116,4 +116,24 @@ describe("página de detalhe", () => {
     expect(screen.queryByText(/Descrição original/)).toBeNull();
     expect(container.textContent).not.toMatch(/undefined|null|NaN/);
   });
+
+  it("mostra no máximo 6 parecidos", async () => {
+    const muitos = Array.from({ length: 9 }, (_, i) => ({
+      id: `m${i}`,
+      name: `Parecido ${i}`,
+      house: "Casa",
+      sharedNotes: [],
+    }));
+    getPerfume.mockResolvedValue({ ...completo, similar: muitos });
+    await renderPage();
+    expect(screen.getAllByRole("link", { name: /Parecido \d/ })).toHaveLength(6);
+  });
+
+  it("não mostra a escala quando o valor não é um número finito", async () => {
+    getPerfume.mockResolvedValue({ ...completo, longevity: NaN, projection: Infinity });
+    const { container } = render(await Page({ params: Promise.resolve({ id: "sauvage" }) }));
+    expect(screen.queryByText(/Fixação/)).toBeNull();
+    expect(screen.queryByText(/Projeção/)).toBeNull();
+    expect(container.textContent).not.toMatch(/NaN/);
+  });
 });

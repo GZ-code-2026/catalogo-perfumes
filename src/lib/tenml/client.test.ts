@@ -77,6 +77,20 @@ describe("getPerfume", () => {
     expect(p?.seasons).toEqual([]);
     expect(p?.perfumers).toEqual([]);
   });
+
+  it("pirâmide com os três níveis vazios vira undefined", async () => {
+    const perfume = { ...detail.perfume, pyramid: { top: [], heart: [], base: [] } };
+    fetchMock.mockResolvedValue(resposta({ ...detail, perfume }));
+    const p = await getPerfume("dior-sauvage-edp");
+    expect(p?.pyramid).toBeUndefined();
+  });
+
+  it("pirâmide com só um nível preenchido é mantida", async () => {
+    const perfume = { ...detail.perfume, pyramid: { top: ["bergamot"] } };
+    fetchMock.mockResolvedValue(resposta({ ...detail, perfume }));
+    const p = await getPerfume("dior-sauvage-edp");
+    expect(p?.pyramid).toEqual({ top: ["bergamot"], heart: [], base: [] });
+  });
 });
 
 describe("erros", () => {

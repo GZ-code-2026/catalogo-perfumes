@@ -107,8 +107,10 @@ export function SearchBox({ initialQuery = "" }: { initialQuery?: string }) {
         >
           {items.map((item) => (
             <li key={item.id} role="option" aria-selected={false}>
+              {/* prefetch desligado: abrir o detalhe pode gastar a cota da Fragella. */}
               <Link
                 href={`/perfume/${item.id}`}
+                prefetch={false}
                 className="block px-4 py-2 hover:bg-paper focus-visible:bg-paper"
               >
                 <span className="font-display text-lg text-ink">{item.name}</span>{" "}

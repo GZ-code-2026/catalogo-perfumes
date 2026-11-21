@@ -41,3 +41,6 @@ $$;
 alter table photo_cache enable row level security;
 alter table fragella_seen enable row level security;
 alter table fragella_usage enable row level security;
+
+-- A função só pode ser chamada pelo servidor (service role), nunca pela chave pública.
+revoke execute on function increment_fragella_usage(text) from public, anon, authenticated;

@@ -31,7 +31,7 @@ Navegador ──> Next.js (Vercel)
 ### Serviço de fotos
 
 1. Procura a foto no cache do Supabase (`photo_cache`). Achou (ou está marcado "sem foto")? Devolve e termina.
-2. Se faltar, confere a cota do mês. Sem cota, devolve placeholder, sem marcar "sem foto", para tentar de novo no mês seguinte.
+2. Se faltar, confere a cota do mês e reserva uma chamada antes de buscar. Sem cota, devolve placeholder, sem marcar "sem foto", para tentar de novo no mês seguinte.
 3. Chama a Fragella e guarda **todos** os resultados vistos (`fragella_seen`), assim outros perfumes podem casar com fotos já conhecidas sem gastar cota.
 4. Tenta casar o perfume com os resultados. Casou: grava a URL. Não casou: grava "sem foto".
 
@@ -96,7 +96,7 @@ Preencha o `.env.local`:
 | `FRAGELLA_API_KEY` | chave da Fragella (só servidor) |
 | `FRAGELLA_MONTHLY_BUDGET` | limite mensal de chamadas (padrão `18`) |
 | `SUPABASE_URL` | Project URL do Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | chave `service_role` do Supabase (só servidor) |
+| `SUPABASE_SERVICE_ROLE_KEY` | chave secreta do Supabase (`service_role` ou Secret key `sb_secret_…`; só servidor) |
 | `TENML_BASE_URL` | já vem preenchida |
 | `FRAGELLA_BASE_URL` | já vem preenchida |
 
@@ -106,9 +106,15 @@ Preencha o `.env.local`:
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
 2. No **SQL Editor**, cole e rode o conteúdo de `supabase/migrations/0001_init.sql`.
-3. Em **Project Settings > API**, copie a **Project URL** e a chave **service_role** para o `.env.local`.
+3. Em **Project Settings > API**, copie a **Project URL** e a chave secreta (service_role / Secret key `sb_secret_…`) para o `.env.local`. Qualquer uma das duas funciona com o supabase-js.
 
 ### 5. Comandos
+
+Antes do primeiro `npm run test:e2e`, instale o navegador do Playwright:
+
+```powershell
+npx playwright install chromium
+```
 
 ```powershell
 npm run dev          # servidor local em http://localhost:3000
@@ -122,9 +128,25 @@ npm run lint         # checagem de código
 - `npm run test:e2e` usa um mock local e **nunca chama as APIs reais**. Nenhum teste do projeto chama a Fragella ou a 10ML de verdade.
 - `npm run seed:photos` **gasta cota real da Fragella** (respeitando `FRAGELLA_MONTHLY_BUDGET`) e para quando o orçamento acaba. Pode ser rodado de novo em meses seguintes.
 
+### Limpando o cache de fotos
+
+Se as regras de correspondência mudarem, apague o cache no **SQL Editor** do Supabase para as fotos serem procuradas de novo:
+
+```sql
+delete from photo_cache;
+```
+
 ### Nota sobre o OneDrive
 
 Se a pasta do projeto fica dentro do OneDrive, exclua `node_modules` e `.next` da sincronização (ou mova o repositório para fora do OneDrive). Caso contrário, o build pode falhar com erros `EPERM` por arquivos travados. Se acontecer, apague a pasta `.next` e rode de novo.
+
+## Publicando na Vercel
+
+1. Em [vercel.com](https://vercel.com), clique em **Add New > Project** e importe este repositório do GitHub.
+2. Em **Environment Variables**, cadastre `FRAGELLA_API_KEY`, `FRAGELLA_MONTHLY_BUDGET`, `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
+3. Clique em **Deploy**.
+
+O plano grátis do Supabase **pausa o projeto depois de um tempo sem uso**. Enquanto ele estiver pausado, o site continua funcionando, mas mostra só os placeholders no lugar das fotos. Para voltar, reative o projeto no painel do Supabase.
 
 ## Como foi construído com Claude Code
 
@@ -139,4 +161,4 @@ O processo foi tão importante quanto o resultado:
 ## Créditos
 
 - Dados: [Data: 10ML Fragrance Index](https://10ml.com/perfume-api)
-- Fotos: [Fragella](https://fragella.com)
+- Fotos: [Fragella](https://api.fragella.com)

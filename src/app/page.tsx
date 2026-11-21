@@ -4,6 +4,9 @@ import { toCards } from "@/lib/photos/cards";
 import type { CardData } from "@/lib/photos/cards";
 import { TenmlError, searchPerfumes } from "@/lib/tenml/client";
 
+// Refaz a vitrine (e as fotos já em cache) a cada 5 minutos.
+export const revalidate = 300;
+
 async function carregarVitrine(): Promise<CardData[] | null> {
   try {
     const page = await searchPerfumes({ iconic: true, limit: 12 });

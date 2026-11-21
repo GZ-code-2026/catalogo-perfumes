@@ -54,6 +54,14 @@ function toSummary(p: Cru): PerfumeSummary {
   };
 }
 
+// Pirâmide sem nenhuma nota nos três níveis não é mostrada.
+function toPyramid(raw: Cru | null | undefined): PerfumeDetail["pyramid"] {
+  if (!raw) return undefined;
+  const pyramid = { top: raw.top ?? [], heart: raw.heart ?? [], base: raw.base ?? [] };
+  const vazia = pyramid.top.length === 0 && pyramid.heart.length === 0 && pyramid.base.length === 0;
+  return vazia ? undefined : pyramid;
+}
+
 function toSimilar(s: Cru): SimilarItem {
   return {
     id: s.id,
@@ -97,13 +105,7 @@ export async function getPerfume(id: string): Promise<PerfumeDetail | null> {
   return {
     ...toSummary(p),
     concentration: p.concentration ?? undefined,
-    pyramid: p.pyramid
-      ? {
-          top: p.pyramid.top ?? [],
-          heart: p.pyramid.heart ?? [],
-          base: p.pyramid.base ?? [],
-        }
-      : undefined,
+    pyramid: toPyramid(p.pyramid),
     seasons: p.seasons ?? [],
     occasions: p.occasions ?? [],
     styles: p.styles ?? [],

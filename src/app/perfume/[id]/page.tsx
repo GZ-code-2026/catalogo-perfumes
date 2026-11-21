@@ -21,6 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function Escala({ rotulo, valor }: { rotulo: string; valor: number }) {
+  // Valor estranho (NaN, Infinity) da API: melhor não mostrar a escala.
+  if (!Number.isFinite(valor)) return null;
   const nivel = Math.min(5, Math.max(0, Math.round(valor)));
   return (
     <div>
@@ -66,7 +68,7 @@ export default async function PerfumePage({ params }: Props) {
     { id: perfume.id, name: perfume.name, house: perfume.house, concentration: perfume.concentration },
     { allowFetch: !isBot(ua) },
   );
-  const parecidos = await toCards(perfume.similar);
+  const parecidos = await toCards(perfume.similar.slice(0, 6));
 
   const linha = [perfume.house, perfume.year, perfume.concentration].filter(Boolean).join(" · ");
   const estacoes = perfume.seasons.map((s) => t("season", s));
