@@ -1,5 +1,5 @@
 import { pickImage, type FragellaItem } from '../fragella/client';
-import { findMatch, toKey, type MatchCandidate, type PhotoKey } from './match';
+import { findMatch, fragellaKey, toKey, type MatchCandidate, type PhotoKey } from './match';
 import type { PhotoStore } from './store';
 
 export interface PhotoSubject {
@@ -56,7 +56,7 @@ export function createPhotoService(deps: {
       const imageUrl = pickImage(item);
       if (!imageUrl) continue;
       candidates.push({
-        ...toKey(item.brand, item.name, item.oilType),
+        ...fragellaKey(item),
         imageUrl,
         rawName: item.name,
         rawBrand: item.brand,

@@ -77,6 +77,16 @@ describe('createPhotoService', () => {
     expect(await store.getCached('p1')).toEqual({ status: 'found', imageUrl: 'https://x/right.png' });
   });
 
+  it('item da Fragella: concentração do nome vence o OilType', async () => {
+    const { store, service } = setup([
+      item('Sauvage Parfum for men', 'Dior', 'https://x/parfum.png', 'EDP'),
+    ]);
+    const parfum = { id: 'p2', name: 'Sauvage Parfum', house: 'Dior', concentration: 'Parfum' };
+    expect(await service.getPhoto(parfum, { allowFetch: true })).toBe('https://x/parfum.png');
+    const [seen] = await store.findSeenByBrand('dior');
+    expect(seen.concentration).toBe('parfum');
+  });
+
   it('busca sem casamento grava none e conta uso', async () => {
     const { store, service } = setup([item('Fahrenheit', 'Dior', 'https://x/fahr.png', 'Eau de Toilette')]);
     expect(await service.getPhoto(subject, { allowFetch: true })).toBeNull();
