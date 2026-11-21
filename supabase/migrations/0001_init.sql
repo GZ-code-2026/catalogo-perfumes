@@ -44,3 +44,10 @@ alter table fragella_usage enable row level security;
 
 -- A função só pode ser chamada pelo servidor (service role), nunca pela chave pública.
 revoke execute on function increment_fragella_usage(text) from public, anon, authenticated;
+
+-- Projetos novos do Supabase não dão acesso automático às tabelas criadas por SQL:
+-- liberamos explicitamente só para o servidor (service role).
+grant usage on schema public to service_role;
+grant select, insert, update, delete on photo_cache, fragella_seen, fragella_usage to service_role;
+grant usage, select on sequence fragella_seen_id_seq to service_role;
+grant execute on function increment_fragella_usage(text) to service_role;
