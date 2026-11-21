@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n/terms";
 
-// A 10ML manda notas em minúsculas; na tela começam com maiúscula.
+// A 10ML manda notas em minÃºsculas; na tela comeÃ§am com maiÃºscula.
 function comMaiuscula(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
