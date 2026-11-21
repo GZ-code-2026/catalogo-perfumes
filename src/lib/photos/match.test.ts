@@ -60,6 +60,14 @@ test('candidatos com a mesma imageUrl contam como um só', () => {
   const a = c('Dior', 'Sauvage', null);
   expect(findMatch(toKey('Dior', 'Sauvage'), [a, { ...a }])?.imageUrl).toBe(a.imageUrl);
 });
+test('Acqua di Gio não casa com Acqua di Gioia', () =>
+  expect(findMatch(toKey('Armani', 'Acqua di Gio'), [c('Armani', 'Acqua di Gioia')])).toBeNull());
+test('nomes vazios nunca casam', () =>
+  expect(findMatch(toKey('Dior', 'Parfum'), [c('Dior', 'Eau de Parfum')])).toBeNull());
+test('uma palavra com distância 1 casa', () =>
+  expect(findMatch(toKey('Creed', 'Silver Mountain Water'), [c('Creed', 'Silver Mountain Wate')])).not.toBeNull());
+test('duas palavras diferentes não casam', () =>
+  expect(findMatch(toKey('Creed', 'Silver Mountain Water'), [c('Creed', 'Silver Mountains Wate')])).toBeNull());
 test('jaroWinkler', () => {
   expect(jaroWinkler('martha', 'marhta')).toBeCloseTo(0.961, 2);
   expect(jaroWinkler('abc', 'abc')).toBe(1);

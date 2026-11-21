@@ -132,8 +132,38 @@ export function jaroWinkler(a: string, b: string): number {
   return jaro + prefix * 0.1 * (1 - jaro);
 }
 
-function wordCount(s: string): number {
-  return s.split(' ').filter(Boolean).length;
+function levenshtein(a: string, b: string): number {
+  let previous = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+    }
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+// Nomes iguais, ou com o mesmo número de palavras e no máximo UMA palavra
+// diferente, e essa diferença é de só 1 letra (palavras com 4+ letras).
+function namesMatch(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+
+  const wordsA = a.split(' ');
+  const wordsB = b.split(' ');
+  if (wordsA.length !== wordsB.length) return false;
+
+  let differentPairs = 0;
+  for (let i = 0; i < wordsA.length; i++) {
+    if (wordsA[i] === wordsB[i]) continue;
+    differentPairs++;
+    if (differentPairs > 1) return false;
+    if (wordsA[i].length < 4 || wordsB[i].length < 4) return false;
+    if (levenshtein(wordsA[i], wordsB[i]) > 1) return false;
+  }
+  return true;
 }
 
 // Nota de 0 a 1 para o candidato, ou null se ele não serve.
@@ -144,11 +174,8 @@ function scoreCandidate(target: PhotoKey, candidate: MatchCandidate): number | n
     return null;
   }
 
-  if (target.name === candidate.name) return 1;
-
-  if (wordCount(target.name) !== wordCount(candidate.name)) return null;
-  const score = jaroWinkler(target.name, candidate.name);
-  return score >= 0.9 ? score : null;
+  if (!namesMatch(target.name, candidate.name)) return null;
+  return target.name === candidate.name ? 1 : jaroWinkler(target.name, candidate.name);
 }
 
 export function findMatch(target: PhotoKey, candidates: MatchCandidate[]): MatchCandidate | null {
