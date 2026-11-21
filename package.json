@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "seed:photos": "tsx --env-file=.env.local scripts/seed-photos.ts",
+    "seed:photos": "tsx --env-file-if-exists=.env.local scripts/seed-photos.ts",
     "collect:terms": "tsx scripts/collect-terms.ts"
   },
   "dependencies": {
