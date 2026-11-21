@@ -58,4 +58,60 @@ describe("SearchBox", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     expect(screen.getByText("Dior")).toBeTruthy();
   });
+
+  async function digitarEMostrar(texto: string) {
+    const input = screen.getByLabelText("Buscar perfume");
+    fireEvent.change(input, { target: { value: texto } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    return input;
+  }
+
+  it("limpa as sugestões quando a API responde com erro", async () => {
+    const fetchMock = vi.fn(async () => resposta([{ id: "1", name: "Sauvage", house: "Dior" }]));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<SearchBox />);
+    await digitarEMostrar("sau");
+    expect(screen.getByText("Sauvage")).toBeTruthy();
+
+    fetchMock.mockImplementation(async () => ({ ok: false, status: 500 }) as Response);
+    await digitarEMostrar("sauv");
+    expect(screen.queryByText("Sauvage")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("limpa as sugestões quando a rede falha", async () => {
+    const fetchMock = vi.fn(async () => resposta([{ id: "1", name: "Sauvage", house: "Dior" }]));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<SearchBox />);
+    await digitarEMostrar("sau");
+    expect(screen.getByText("Sauvage")).toBeTruthy();
+
+    fetchMock.mockImplementation(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await digitarEMostrar("sauv");
+    expect(screen.queryByText("Sauvage")).toBeNull();
+  });
+
+  it("fecha a lista quando o foco sai do formulário", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => resposta([{ id: "1", name: "Sauvage", house: "Dior" }])));
+    render(
+      <div>
+        <SearchBox />
+        <button>fora</button>
+      </div>,
+    );
+    const input = await digitarEMostrar("sau");
+    fireEvent.blur(input, { relatedTarget: screen.getByText("fora") });
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("mantém a lista quando o foco vai para uma sugestão (o clique ainda navega)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => resposta([{ id: "1", name: "Sauvage", house: "Dior" }])));
+    render(<SearchBox />);
+    const input = await digitarEMostrar("sau");
+    const link = screen.getByRole("link", { name: /Sauvage/ });
+    fireEvent.blur(input, { relatedTarget: link });
+    expect(screen.getByRole("link", { name: /Sauvage/ }).getAttribute("href")).toBe("/perfume/1");
+  });
 });
