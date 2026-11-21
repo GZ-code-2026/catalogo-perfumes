@@ -4,7 +4,8 @@ import { getPerfume, searchPerfumes } from "../src/lib/tenml/client";
 import { searchFragrances } from "../src/lib/fragella/client";
 import { createPhotoService } from "../src/lib/photos/service";
 import { createSupabaseStore } from "../src/lib/photos/supabase-store";
-import { assuntoComConcentracao, classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
+import { lerOrcamento } from "../src/lib/photos/budget";
+import { assuntoComConcentracao, classificar, variaveisFaltando } from "./seed-logic";
 
 const MAX_FALHAS_SEGUIDAS = 3;
 

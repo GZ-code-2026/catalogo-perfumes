@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { assuntoComConcentracao, classificar, lerOrcamento, variaveisFaltando } from "./seed-logic";
+import { assuntoComConcentracao, classificar, variaveisFaltando } from "./seed-logic";
 
 describe("classificar", () => {
   it("foto quando há url", () => {
@@ -10,17 +10,6 @@ describe("classificar", () => {
   });
   it("falha quando não há url nem cache", () => {
     expect(classificar(null, null)).toBe("falha");
-  });
-});
-
-describe("lerOrcamento", () => {
-  it("usa 18 se faltar ou não for número", () => {
-    expect(lerOrcamento(undefined)).toBe(18);
-    expect(lerOrcamento("")).toBe(18);
-    expect(lerOrcamento("abc")).toBe(18);
-  });
-  it("usa o valor numérico", () => {
-    expect(lerOrcamento("5")).toBe(5);
   });
 });
 

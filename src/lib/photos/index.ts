@@ -1,5 +1,6 @@
 import 'server-only';
 import { isFragellaConfigured, searchFragrances } from '../fragella/client';
+import { lerOrcamento } from './budget';
 import { createPhotoService, type PhotoService } from './service';
 import { createSupabaseStore } from './supabase-store';
 
@@ -15,7 +16,7 @@ export function getPhotoService(): PhotoService {
   instance = createPhotoService({
     store: url && key ? createSupabaseStore(url, key) : null,
     search: isFragellaConfigured() ? searchFragrances : null,
-    budget: Number(process.env.FRAGELLA_MONTHLY_BUDGET ?? 18),
+    budget: lerOrcamento(process.env.FRAGELLA_MONTHLY_BUDGET),
   });
   return instance;
 }

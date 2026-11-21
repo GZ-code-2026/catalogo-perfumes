@@ -8,13 +8,6 @@ export function variaveisFaltando(env: Record<string, string | undefined>): stri
   );
 }
 
-// Orçamento mensal: usa 18 se a variável faltar ou não for um número.
-export function lerOrcamento(valor: string | undefined): number {
-  if (!valor) return 18;
-  const n = Number(valor);
-  return Number.isFinite(n) ? n : 18;
-}
-
 // foto: achou a imagem; sem-foto: a Fragella respondeu e não há foto;
 // falha: nada foi guardado (erro da Fragella ou do banco).
 export function classificar(

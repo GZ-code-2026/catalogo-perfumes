@@ -42,10 +42,14 @@ export function createPhotoService(deps: {
     const month = now().toISOString().slice(0, 7);
     if ((await store.getUsage(month)) >= budget) return null;
 
+    // Reserva a chamada ANTES de buscar: assim nenhuma chamada cobrada fica sem contar,
+    // e duas requisições ao mesmo tempo não passam juntas do orçamento.
+    // Se a busca falhar, contamos uma a mais (é o lado seguro).
+    const reserved = await store.incrementUsage(month);
+    if (reserved > budget) return null;
+
     const items = await searchFn(`${p.house} ${p.name}`);
     if (items === null) return null;
-
-    await store.incrementUsage(month);
 
     const candidates: (MatchCandidate & { rawBrand: string })[] = [];
     for (const item of items) {

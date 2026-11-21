@@ -84,10 +84,20 @@ describe('createPhotoService', () => {
     expect(await store.getUsage(MONTH)).toBe(1);
   });
 
-  it('falha da Fragella (null) não conta uso nem grava', async () => {
+  it('falha da Fragella (429/5xx = null) não grava, mas a reserva conta 1 de uso', async () => {
     const { store, service } = setup(null);
     expect(await service.getPhoto(subject, { allowFetch: true })).toBeNull();
-    expect(await store.getUsage(MONTH)).toBe(0);
+    expect(await store.getUsage(MONTH)).toBe(1);
+    expect(await store.getCached('p1')).toBeNull();
+  });
+
+  it('reserva antes de buscar: se o total reservado passa do orçamento, não busca', async () => {
+    const { store, search, service } = setup([], 18);
+    for (let i = 0; i < 18; i++) await store.incrementUsage(MONTH);
+    // Simula outra requisição que reservou entre a leitura e a reserva.
+    store.getUsage = async () => 17;
+    expect(await service.getPhoto(subject, { allowFetch: true })).toBeNull();
+    expect(search).not.toHaveBeenCalled();
     expect(await store.getCached('p1')).toBeNull();
   });
 
