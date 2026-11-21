@@ -1,6 +1,7 @@
 import {
   concentrationFromId,
   findMatch,
+  fragellaKey,
   jaroWinkler,
   normalizeBrand,
   normalizeText,
@@ -55,8 +56,12 @@ test('marca diferente nunca casa', () =>
   expect(findMatch(toKey('Dior', 'Sauvage'), [c('Lattafa', 'Sauvage')])).toBeNull());
 test('pequena variação de grafia casa (>=0.9, mesmo nº de palavras)', () =>
   expect(findMatch(toKey('Lancôme', 'La Vie Est Belle'), [c('Lancome', 'La Vie est Bele')])).not.toBeNull());
-test('empate entre candidatos não casa', () =>
-  expect(findMatch(toKey('Dior', 'Sauvage'), [c('Dior', 'Sauvage', null), { ...c('Dior', 'Sauvage', null), imageUrl: 'outra' }])).toBeNull());
+test('empate entre candidatos com chaves diferentes não casa', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage'), [c('Dior', 'Sauvage', null), { ...c('Dior', 'Sauvage', 'EDT'), imageUrl: 'outra' }])).toBeNull());
+test('empate com a mesma chave e imagens diferentes escolhe o primeiro', () => {
+  const a = c('Dior', 'Sauvage', null);
+  expect(findMatch(toKey('Dior', 'Sauvage'), [a, { ...a, imageUrl: 'outra' }])?.imageUrl).toBe(a.imageUrl);
+});
 test('candidatos com a mesma imageUrl contam como um só', () => {
   const a = c('Dior', 'Sauvage', null);
   expect(findMatch(toKey('Dior', 'Sauvage'), [a, { ...a }])?.imageUrl).toBe(a.imageUrl);
@@ -85,3 +90,77 @@ test('concentrationFromId lê a concentração do final do id', () => {
   expect(concentrationFromId('edp-algo')).toBeNull();
   expect(concentrationFromId('')).toBeNull();
 });
+
+// Apelidos, prefixo de marca e descritores de público.
+test('novos apelidos de marca', () => {
+  expect(normalizeBrand('Christian Dior')).toBe('dior');
+  expect(normalizeBrand('Giorgio Armani')).toBe('armani');
+  expect(normalizeBrand('Paco Rabanne')).toBe('rabanne');
+  expect(normalizeBrand('MFK')).toBe('maison francis kurkdjian');
+  expect(normalizeBrand('Maison Francis Kurkdjian')).toBe('maison francis kurkdjian');
+});
+test('remove a marca do começo do nome em qualquer forma, repetidamente', () => {
+  expect(toKey('Dior', 'Christian Dior Dior Sauvage').name).toBe('sauvage');
+  expect(toKey('Christian Dior', 'Dior Sauvage').name).toBe('sauvage');
+  expect(toKey('Dior', 'Dior').name).toBe('dior');
+  expect(toKey('Dior', 'Chirstian Dior Eau Sauvage').name).toBe('chirstian dior eau sauvage');
+});
+test('remove descritores de público só no final', () => {
+  expect(toKey('Dior', 'Balade Sauvage unisex').name).toBe('balade sauvage');
+  expect(toKey('Creed', 'Aventus for Men').name).toBe('aventus');
+  expect(toKey('X', 'Y for Women').name).toBe('y');
+  expect(toKey('X', 'Y for Men and Women').name).toBe('y');
+  expect(toKey('X', 'Y for Women and Men').name).toBe('y');
+  expect(toKey('X', 'Unisex Y').name).toBe('unisex y');
+  expect(toKey('Dior', 'Fahrenheit pour Homme').name).toBe('fahrenheit pour homme');
+  expect(toKey('X', 'Y pour Homme et Femme').name).toBe('y pour homme et femme');
+  expect(toKey('Dior', 'Dior Homme').name).toBe('homme');
+  expect(toKey('X', 'Unisex').name).toBe('unisex');
+});
+test('fragellaKey: concentração do nome vence o OilType', () => {
+  expect(fragellaKey({ brand: 'Dior', name: 'Sauvage Parfum for men', oilType: 'EDP' })).toEqual({
+    brand: 'dior',
+    name: 'sauvage',
+    concentration: 'parfum',
+  });
+  expect(fragellaKey({ brand: 'Dior', name: 'Sauvage', oilType: 'Eau de Toilette' }).concentration).toBe('edt');
+  expect(fragellaKey({ brand: 'Dior', name: 'Sauvage' }).concentration).toBeNull();
+});
+
+// Linhas REAIS da Fragella (busca "Dior Sauvage Eau de Parfum"), na ordem recebida.
+const REAL_ROWS: Array<[string, string, string | null]> = [
+  ['Christian Dior', 'Dior Sauvage', 'edt'],
+  ['Christian Dior', 'Dior Sauvage Elixir', 'edp'],
+  ['Christian Dior', 'Dior Sauvage Eau Forte', 'edp'],
+  ['Christian Dior', 'Dior Sauvage Eau De Toilette', 'edt'],
+  ['Dior', 'Dior Sauvage Edt', 'edt'],
+  ['Dior', 'Christian Dior Dior Sauvage Edp', 'edp'],
+  ['Dior', 'Chirstian Dior Eau Sauvage Edt', 'edt'],
+  ['Dior', 'Balade Sauvage unisex', null],
+  ['Dior', 'Sauvage Parfum for men', 'edp'],
+  ['Dior', 'Eau Sauvage 100% Glacon unisex', null],
+];
+const realCandidates = REAL_ROWS.map(([brand, name, oilType]) => ({
+  ...fragellaKey({ brand, name, oilType }),
+  imageUrl: `img:${name}`,
+  rawName: name,
+}));
+const SAUVAGE_EDT = ['Dior Sauvage', 'Dior Sauvage Eau De Toilette', 'Dior Sauvage Edt'];
+
+test('dados reais: Sauvage EDP casa com "Christian Dior Dior Sauvage Edp"', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage Eau de Parfum', 'EDP'), realCandidates)?.rawName).toBe(
+    'Christian Dior Dior Sauvage Edp',
+  ));
+test('dados reais: Sauvage EDT casa com uma das linhas Sauvage EDT (a primeira)', () => {
+  const match = findMatch(toKey('Dior', 'Sauvage Eau de Toilette', 'EDT'), realCandidates);
+  expect(SAUVAGE_EDT).toContain(match?.rawName);
+  expect(match?.rawName).toBe('Dior Sauvage');
+});
+test('dados reais: Sauvage Parfum casa com "Sauvage Parfum for men"', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage Parfum', 'Parfum'), realCandidates)?.rawName).toBe(
+    'Sauvage Parfum for men',
+  ));
+test('dados reais: Sauvage Elixir casa com "Dior Sauvage Elixir"', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage Elixir', null), realCandidates)?.rawName).toBe('Dior Sauvage Elixir'));
+test('dados reais: Eau Sauvage não casa com o nome com erro de digitação', () =>
+  expect(findMatch(toKey('Dior', 'Eau Sauvage', 'EDT'), realCandidates)).toBeNull());

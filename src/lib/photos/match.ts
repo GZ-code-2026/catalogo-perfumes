@@ -30,6 +30,10 @@ const BRAND_ALIASES: Record<string, string> = {
   'dolce and gabbana': 'dolce gabbana',
   ck: 'calvin klein',
   jpg: 'jean paul gaultier',
+  'christian dior': 'dior',
+  'giorgio armani': 'armani',
+  'paco rabanne': 'rabanne',
+  mfk: 'maison francis kurkdjian',
 };
 
 export function normalizeBrand(s: string): string {
@@ -89,11 +93,53 @@ function removeConcentrationTerms(normalized: string): string {
   return result.replace(/\s+/g, ' ').trim();
 }
 
-function removeLeadingBrand(name: string, brands: string[]): string {
-  for (const brand of brands) {
-    if (brand && name.startsWith(`${brand} `)) return name.slice(brand.length + 1).trim();
+// Todas as formas de escrever a marca: como veio, a forma oficial e os apelidos dela.
+// Ex.: "Christian Dior" → ["christian dior", "dior"]. As mais longas vêm primeiro.
+function brandForms(house: string): string[] {
+  const canonical = normalizeBrand(house);
+  const forms = new Set([normalizeText(house), canonical]);
+  for (const [alias, target] of Object.entries(BRAND_ALIASES)) {
+    if (target === canonical) forms.add(alias);
   }
-  return name;
+  return [...forms].filter(Boolean).sort((a, b) => b.length - a.length);
+}
+
+// Tira do começo do nome, repetidamente, palavras iguais à marca
+// ("christian dior dior sauvage" → "sauvage"). Nunca deixa o nome vazio.
+function removeLeadingBrand(name: string, forms: string[]): string {
+  let result = name;
+  let removed = true;
+  while (removed) {
+    removed = false;
+    for (const form of forms) {
+      if (result.startsWith(`${form} `)) {
+        result = result.slice(form.length + 1).trim();
+        removed = true;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+// Descritores de público tirados só do FINAL do nome. "pour homme", "femme" etc.
+// ficam, porque podem fazer parte do nome de verdade.
+const AUDIENCE_DESCRIPTORS = ['for men and women', 'for women and men', 'for men', 'for women', 'unisex'];
+
+function removeTrailingDescriptors(name: string): string {
+  let result = name;
+  let removed = true;
+  while (removed) {
+    removed = false;
+    for (const descriptor of AUDIENCE_DESCRIPTORS) {
+      if (result.endsWith(` ${descriptor}`)) {
+        result = result.slice(0, -(descriptor.length + 1)).trim();
+        removed = true;
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 export function toKey(house: string, name: string, concentrationHint?: string | null): PhotoKey {
@@ -102,9 +148,17 @@ export function toKey(house: string, name: string, concentrationHint?: string | 
   const concentration = parseConcentration(concentrationHint) ?? findConcentration(normalizedName);
 
   const withoutConcentration = removeConcentrationTerms(normalizedName);
-  const withoutBrand = removeLeadingBrand(withoutConcentration, [brand, normalizeText(house)]);
+  const withoutDescriptors = removeTrailingDescriptors(withoutConcentration);
+  const withoutBrand = removeLeadingBrand(withoutDescriptors, brandForms(house));
 
-  return { brand, name: withoutBrand || withoutConcentration, concentration };
+  return { brand, name: withoutBrand, concentration };
+}
+
+// Chave de um item da Fragella. Aqui a concentração escrita no NOME vence o OilType
+// (ex.: "Sauvage Parfum" com OilType "EDP" é Parfum); o OilType só entra se o nome não tiver.
+export function fragellaKey(item: { brand: string; name: string; oilType?: string | null }): PhotoKey {
+  const key = toKey(item.brand, item.name);
+  return { ...key, concentration: key.concentration ?? parseConcentration(item.oilType) };
 }
 
 export function jaroWinkler(a: string, b: string): number {
@@ -211,8 +265,13 @@ export function findMatch(target: PhotoKey, candidates: MatchCandidate[]): Match
 
   if (best.length === 0) return null;
 
-  // Candidatos com a mesma imagem contam como um só; imagens diferentes empatadas = ambíguo.
+  // Empate só é aceito se for o mesmo produto: mesma imagem, ou mesma chave
+  // (marca, nome e concentração) fotografada mais de uma vez. Aí fica o primeiro.
+  // Chaves diferentes empatadas = ambíguo, melhor não mostrar foto.
   const distinctImages = new Set(best.map((candidate) => candidate.imageUrl));
-  if (distinctImages.size > 1) return null;
+  const distinctKeys = new Set(
+    best.map((candidate) => `${candidate.brand}|${candidate.name}|${candidate.concentration ?? ''}`),
+  );
+  if (distinctImages.size > 1 && distinctKeys.size > 1) return null;
   return best[0];
 }
