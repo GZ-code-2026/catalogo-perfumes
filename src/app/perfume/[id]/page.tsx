@@ -65,7 +65,13 @@ export default async function PerfumePage({ params }: Props) {
   // Só esta página pode gastar a cota da Fragella, e nunca para robôs.
   const ua = (await headers()).get("user-agent");
   const foto = await getPhotoService().getPhoto(
-    { id: perfume.id, name: perfume.name, house: perfume.house, concentration: perfume.concentration },
+    {
+      id: perfume.id,
+      name: perfume.name,
+      house: perfume.house,
+      concentration: perfume.concentration,
+      gender: perfume.gender,
+    },
     { allowFetch: !isBot(ua) },
   );
   const parecidos = await toCards(perfume.similar.slice(0, 6));

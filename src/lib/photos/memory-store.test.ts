@@ -24,6 +24,7 @@ describe('memory store', () => {
     const store = createMemoryStore();
     const item = {
       brand: 'dior', name: 'sauvage', concentration: 'edt' as const,
+      audience: null, audienceExplicit: false,
       imageUrl: 'http://a/s.jpg', rawName: 'Sauvage EDT', rawBrand: 'Dior',
     };
     await store.addSeen([item]);
@@ -32,9 +33,22 @@ describe('memory store', () => {
     expect(seen).toHaveLength(1);
     expect(seen[0]).toEqual({
       brand: 'dior', name: 'sauvage', concentration: 'edt',
+      audience: null, audienceExplicit: false,
       imageUrl: 'http://a/s.jpg', rawName: 'Sauvage EDT',
     });
     expect(await store.findSeenByBrand('chanel')).toEqual([]);
+  });
+
+  it('público é lido do nome original, como no Supabase (sem coluna própria)', async () => {
+    const store = createMemoryStore();
+    await store.addSeen([{
+      brand: 'dolce gabbana', name: 'the one', concentration: 'edp',
+      audience: null, audienceExplicit: false,
+      imageUrl: 'http://a/one.jpg', rawName: 'The One for Men', rawBrand: 'Dolce & Gabbana',
+    }]);
+    const [seen] = await store.findSeenByBrand('dolce gabbana');
+    expect(seen.audience).toBe('men');
+    expect(seen.audienceExplicit).toBe(true);
   });
 
   it('incrementUsage soma e getUsage de outro mês é 0', async () => {

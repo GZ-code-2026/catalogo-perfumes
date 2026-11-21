@@ -7,6 +7,7 @@ export interface PhotoSubject {
   name: string;
   house: string;
   concentration?: string;
+  gender?: string; // 'men' | 'women' | 'unisex', da 10ML
 }
 
 export interface PhotoService {
@@ -26,7 +27,7 @@ export function createPhotoService(deps: {
   // Passo 3: procura nos resultados da Fragella já vistos; se casar, grava no cache.
   // Só o getPhoto usa esta função, porque ele recebe os dados completos (com concentração).
   async function fromSeen(store: PhotoStore, p: PhotoSubject): Promise<string | null> {
-    const key = toKey(p.house, p.name, p.concentration);
+    const key = toKey(p.house, p.name, p.concentration, p.gender);
     const match = findMatch(key, await store.findSeenByBrand(key.brand));
     if (!match) return null;
     await store.saveCached(p.id, {
@@ -64,7 +65,7 @@ export function createPhotoService(deps: {
     }
     await store.addSeen(candidates);
 
-    const match = findMatch(toKey(p.house, p.name, p.concentration), candidates);
+    const match = findMatch(toKey(p.house, p.name, p.concentration, p.gender), candidates);
     if (match) {
       await store.saveCached(p.id, {
         status: 'found',
@@ -110,7 +111,7 @@ export function createPhotoService(deps: {
           if (entry) {
             result.set(p.id, entry.imageUrl);
           } else if (`${p.house} ${p.name}`.trim() !== '') {
-            const key = toKey(p.house, p.name, p.concentration);
+            const key = toKey(p.house, p.name, p.concentration, p.gender);
             const grupo = porMarca.get(key.brand) ?? [];
             grupo.push({ id: p.id, key });
             porMarca.set(key.brand, grupo);

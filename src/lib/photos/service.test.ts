@@ -126,6 +126,18 @@ describe('createPhotoService', () => {
     expect(search).not.toHaveBeenCalled();
   });
 
+  it('gênero da 10ML impede foto de frasco de outro público (seen, busca e listas)', async () => {
+    const { store, service } = setup([item('The One for Men', 'Dolce & Gabbana', 'https://x/men.png', 'EDP')]);
+    const theOne = { id: 'one', name: 'The One', house: 'Dolce & Gabbana', concentration: 'EDP', gender: 'women' };
+    expect(await service.getPhoto(theOne, { allowFetch: true })).toBeNull();
+    expect((await store.getCached('one'))?.status).toBe('none');
+    const map = await service.getPhotosCacheOnly([{ ...theOne, id: 'one-lista' }]);
+    expect(map.get('one-lista')).toBeNull();
+    // Sem gênero, o mesmo seen continua aparecendo (público não explícito no alvo).
+    const semGenero = await service.getPhotosCacheOnly([{ ...theOne, id: 'one-sem', gender: undefined }]);
+    expect(semGenero.get('one-sem')).toBe('https://x/men.png');
+  });
+
   it('getPhotosCacheOnly combina cache, seen e desconhecido sem buscar', async () => {
     const { store, search, service } = setup();
     await store.saveCached('a', { status: 'found', imageUrl: 'https://x/a.png', matchedName: 'A' });

@@ -3,10 +3,16 @@
 
 export type Concentration = 'edc' | 'edt' | 'edp' | 'parfum' | 'extrait';
 
+export type Audience = 'men' | 'women';
+
 export interface PhotoKey {
   brand: string;
   name: string;
   concentration: Concentration | null;
+  // Público: 'men' / 'women' / null (desconhecido ou unissex).
+  audience: Audience | null;
+  // true quando o público está escrito no nome ("for men"/"for women").
+  audienceExplicit: boolean;
 }
 
 export interface MatchCandidate extends PhotoKey {
@@ -122,40 +128,71 @@ function removeLeadingBrand(name: string, forms: string[]): string {
   return result;
 }
 
-// Descritores de público tirados só do FINAL do nome. "pour homme", "femme" etc.
-// ficam, porque podem fazer parte do nome de verdade.
-const AUDIENCE_DESCRIPTORS = ['for men and women', 'for women and men', 'for men', 'for women', 'unisex'];
+// Descritores de público tirados só do FINAL do nome. Os neutros ("unisex",
+// "for men and women") somem; "for men"/"for women" somem do nome mas viram o
+// público da chave, porque "The One" e "The One for Men" são frascos diferentes.
+// "pour homme", "femme" etc. ficam, porque podem fazer parte do nome de verdade.
+const AUDIENCE_DESCRIPTORS: Array<[string, Audience | null]> = [
+  ['for men and women', null],
+  ['for women and men', null],
+  ['for men', 'men'],
+  ['for women', 'women'],
+  ['unisex', null],
+];
 
-function removeTrailingDescriptors(name: string): string {
+function removeTrailingDescriptors(name: string): { name: string; audience: Audience | null } {
   let result = name;
+  let audience: Audience | null = null;
   let removed = true;
   while (removed) {
     removed = false;
-    for (const descriptor of AUDIENCE_DESCRIPTORS) {
+    for (const [descriptor, descriptorAudience] of AUDIENCE_DESCRIPTORS) {
       if (result.endsWith(` ${descriptor}`)) {
         result = result.slice(0, -(descriptor.length + 1)).trim();
+        audience = audience ?? descriptorAudience;
         removed = true;
         break;
       }
     }
   }
-  return result;
+  return { name: result, audience };
 }
 
-export function toKey(house: string, name: string, concentrationHint?: string | null): PhotoKey {
+// Gênero da 10ML ('men' | 'women' | 'unisex'); só 'men' e 'women' viram público.
+function audienceFromGender(gender: string | null | undefined): Audience | null {
+  const text = normalizeText(gender ?? '');
+  return text === 'men' || text === 'women' ? text : null;
+}
+
+// Público escrito no nome ("for men"/"for women" no final), ou null.
+export function audienceFromName(name: string): Audience | null {
+  return removeTrailingDescriptors(removeConcentrationTerms(normalizeText(name))).audience;
+}
+
+// Chave de um perfume da 10ML. O gênero (opcional) só vale se o nome não disser o público.
+export function toKey(
+  house: string,
+  name: string,
+  concentrationHint?: string | null,
+  gender?: string | null,
+): PhotoKey {
   const brand = normalizeBrand(house);
   const normalizedName = normalizeText(name);
   const concentration = parseConcentration(concentrationHint) ?? findConcentration(normalizedName);
 
   const withoutConcentration = removeConcentrationTerms(normalizedName);
   const withoutDescriptors = removeTrailingDescriptors(withoutConcentration);
-  const withoutBrand = removeLeadingBrand(withoutDescriptors, brandForms(house));
+  const withoutBrand = removeLeadingBrand(withoutDescriptors.name, brandForms(house));
 
-  return { brand, name: withoutBrand, concentration };
+  const audienceExplicit = withoutDescriptors.audience !== null;
+  const audience = withoutDescriptors.audience ?? audienceFromGender(gender);
+
+  return { brand, name: withoutBrand, concentration, audience, audienceExplicit };
 }
 
 // Chave de um item da Fragella. Aqui a concentração escrita no NOME vence o OilType
 // (ex.: "Sauvage Parfum" com OilType "EDP" é Parfum); o OilType só entra se o nome não tiver.
+// O público vem só do nome.
 export function fragellaKey(item: { brand: string; name: string; oilType?: string | null }): PhotoKey {
   const key = toKey(item.brand, item.name);
   return { ...key, concentration: key.concentration ?? parseConcentration(item.oilType) };
@@ -244,6 +281,11 @@ function scoreCandidate(target: PhotoKey, candidate: MatchCandidate): number | n
     return null;
   }
 
+  // Públicos conhecidos e diferentes não casam. Se o nome da 10ML diz o público
+  // ("The One for Men"), o candidato também precisa dizer.
+  if (target.audience && candidate.audience && target.audience !== candidate.audience) return null;
+  if (target.audienceExplicit && !candidate.audience) return null;
+
   if (!namesMatch(target.name, candidate.name)) return null;
   return target.name === candidate.name ? 1 : jaroWinkler(target.name, candidate.name);
 }
@@ -266,11 +308,14 @@ export function findMatch(target: PhotoKey, candidates: MatchCandidate[]): Match
   if (best.length === 0) return null;
 
   // Empate só é aceito se for o mesmo produto: mesma imagem, ou mesma chave
-  // (marca, nome e concentração) fotografada mais de uma vez. Aí fica o primeiro.
+  // (marca, nome, concentração e público) fotografada mais de uma vez. Aí fica o primeiro.
   // Chaves diferentes empatadas = ambíguo, melhor não mostrar foto.
   const distinctImages = new Set(best.map((candidate) => candidate.imageUrl));
   const distinctKeys = new Set(
-    best.map((candidate) => `${candidate.brand}|${candidate.name}|${candidate.concentration ?? ''}`),
+    best.map(
+      (candidate) =>
+        `${candidate.brand}|${candidate.name}|${candidate.concentration ?? ''}|${candidate.audience ?? ''}`,
+    ),
   );
   if (distinctImages.size > 1 && distinctKeys.size > 1) return null;
   return best[0];

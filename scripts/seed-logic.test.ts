@@ -26,8 +26,12 @@ describe("assuntoComConcentracao", () => {
   const resumo = { id: "creed-green-irish-tweed-edp", name: "Green Irish Tweed", house: "Creed" };
 
   it("busca o detalhe e usa a concentração dele", async () => {
-    const buscarDetalhe = vi.fn(async () => ({ concentration: "EDP" }));
-    expect(await assuntoComConcentracao(resumo, buscarDetalhe)).toEqual({ ...resumo, concentration: "EDP" });
+    const buscarDetalhe = vi.fn(async () => ({ concentration: "EDP", gender: "men" }));
+    expect(await assuntoComConcentracao(resumo, buscarDetalhe)).toEqual({
+      ...resumo,
+      concentration: "EDP",
+      gender: "men",
+    });
     expect(buscarDetalhe).toHaveBeenCalledWith("creed-green-irish-tweed-edp");
   });
 

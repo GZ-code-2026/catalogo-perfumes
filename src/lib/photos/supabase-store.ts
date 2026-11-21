@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { MatchCandidate } from './match';
+import { audienceFromName, type MatchCandidate } from './match';
 import type { CachedPhoto, PhotoStore } from './store';
 
 type PhotoStatus = CachedPhoto['status'];
@@ -52,15 +52,19 @@ export function createSupabaseStore(url: string, serviceKey: string): PhotoStore
         .select('brand_norm, name_norm, concentration, image_url, raw_name')
         .eq('brand_norm', brand);
       if (error) throw new Error(`Falha ao ler fragella_seen: ${error.message}`);
-      return (data ?? []).map(
-        (row): MatchCandidate => ({
+      // O público ("for men"/"for women") não tem coluna: é lido do nome original.
+      return (data ?? []).map((row): MatchCandidate => {
+        const audience = audienceFromName(row.raw_name);
+        return {
           brand: row.brand_norm,
           name: row.name_norm,
           concentration: row.concentration as MatchCandidate['concentration'],
+          audience,
+          audienceExplicit: audience !== null,
           imageUrl: row.image_url,
           rawName: row.raw_name,
-        }),
-      );
+        };
+      });
     },
 
     async addSeen(items) {

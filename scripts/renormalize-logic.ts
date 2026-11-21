@@ -18,6 +18,7 @@ export interface ChaveSeen {
 }
 
 // Recalcula marca, nome e concentração com as regras atuais.
+// O público ("for men"/"for women") não é gravado: as lojas o leem de raw_name na hora.
 // A concentração vem do nome, se ele tiver; senão fica a que já estava gravada (veio do OilType).
 export function recalcularLinha(linha: LinhaSeen): ChaveSeen {
   const key = fragellaKey({ brand: linha.raw_brand, name: linha.raw_name });

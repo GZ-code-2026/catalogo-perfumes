@@ -12,7 +12,8 @@ export interface CardData {
 }
 
 // Junta cada perfume com a foto que já está em cache (nunca chama a Fragella).
-// A concentração vem do final do id (ex.: "-edp"), só como dica para mostrar.
+// A concentração vem do final do id (ex.: "-edp"), só como dica para mostrar;
+// o gênero vem do resumo, quando ele traz.
 export async function toCards(items: (PerfumeSummary | SimilarItem)[]): Promise<CardData[]> {
   const fotos = await getPhotoService().getPhotosCacheOnly(
     items.map((item) => ({
@@ -20,6 +21,7 @@ export async function toCards(items: (PerfumeSummary | SimilarItem)[]): Promise<
       name: item.name,
       house: item.house,
       concentration: concentrationFromId(item.id) ?? undefined,
+      gender: "gender" in item ? item.gender : undefined,
     })),
   );
 

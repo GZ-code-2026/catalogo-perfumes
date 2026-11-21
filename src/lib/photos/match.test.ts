@@ -35,7 +35,13 @@ test('parseConcentration', () => {
   expect(parseConcentration('Elixir')).toBeNull();
 });
 test('toKey extrai concentração do nome', () =>
-  expect(toKey('Dior', 'Sauvage Eau de Toilette')).toEqual({ brand: 'dior', name: 'sauvage', concentration: 'edt' }));
+  expect(toKey('Dior', 'Sauvage Eau de Toilette')).toEqual({
+    brand: 'dior',
+    name: 'sauvage',
+    concentration: 'edt',
+    audience: null,
+    audienceExplicit: false,
+  }));
 test('toKey usa hint antes do nome', () =>
   expect(toKey('Dior', 'Sauvage Eau de Parfum', 'EDP').concentration).toBe('edp'));
 test('elixir não é concentração', () =>
@@ -122,6 +128,8 @@ test('fragellaKey: concentração do nome vence o OilType', () => {
     brand: 'dior',
     name: 'sauvage',
     concentration: 'parfum',
+    audience: 'men',
+    audienceExplicit: true,
   });
   expect(fragellaKey({ brand: 'Dior', name: 'Sauvage', oilType: 'Eau de Toilette' }).concentration).toBe('edt');
   expect(fragellaKey({ brand: 'Dior', name: 'Sauvage' }).concentration).toBeNull();
@@ -156,6 +164,14 @@ test('dados reais: Sauvage EDT casa com uma das linhas Sauvage EDT (a primeira)'
   expect(SAUVAGE_EDT).toContain(match?.rawName);
   expect(match?.rawName).toBe('Dior Sauvage');
 });
+test('dados reais: Sauvage EDP com gênero men (não explícito) continua casando', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage Eau de Parfum', 'EDP', 'men'), realCandidates)?.rawName).toBe(
+    'Christian Dior Dior Sauvage Edp',
+  ));
+test('dados reais: Sauvage Parfum com gênero men casa com "Sauvage Parfum for men"', () =>
+  expect(findMatch(toKey('Dior', 'Sauvage Parfum', 'Parfum', 'men'), realCandidates)?.rawName).toBe(
+    'Sauvage Parfum for men',
+  ));
 test('dados reais: Sauvage Parfum casa com "Sauvage Parfum for men"', () =>
   expect(findMatch(toKey('Dior', 'Sauvage Parfum', 'Parfum'), realCandidates)?.rawName).toBe(
     'Sauvage Parfum for men',
@@ -164,3 +180,39 @@ test('dados reais: Sauvage Elixir casa com "Dior Sauvage Elixir"', () =>
   expect(findMatch(toKey('Dior', 'Sauvage Elixir', null), realCandidates)?.rawName).toBe('Dior Sauvage Elixir'));
 test('dados reais: Eau Sauvage não casa com o nome com erro de digitação', () =>
   expect(findMatch(toKey('Dior', 'Eau Sauvage', 'EDT'), realCandidates)).toBeNull());
+
+// Público (FIX ROUND 2, regra C'): "for men"/"for women" saem do nome mas ficam na chave.
+const theOne = (name: string) =>
+  ({ ...fragellaKey({ brand: 'Dolce & Gabbana', name, oilType: 'Eau de Parfum' }), imageUrl: `img:${name}`, rawName: name });
+
+test('público: descritores neutros não marcam público; for men/for women marcam', () => {
+  expect(toKey('Dior', 'Balade Sauvage unisex')).toMatchObject({ audience: null, audienceExplicit: false });
+  expect(toKey('X', 'Y for Men and Women')).toMatchObject({ name: 'y', audience: null, audienceExplicit: false });
+  expect(toKey('X', 'Y for Women')).toMatchObject({ name: 'y', audience: 'women', audienceExplicit: true });
+  expect(toKey('X', 'Y', null, 'women')).toMatchObject({ audience: 'women', audienceExplicit: false });
+  expect(toKey('X', 'Y', null, 'unisex')).toMatchObject({ audience: null, audienceExplicit: false });
+  expect(toKey('X', 'Y for Men', null, 'women')).toMatchObject({ audience: 'men', audienceExplicit: true });
+  expect(fragellaKey({ brand: 'X', name: 'Y' })).toMatchObject({ audience: null, audienceExplicit: false });
+});
+test('D&G: "The One for Men" não casa com "The One" (alvo explícito, candidato sem público)', () =>
+  expect(findMatch(toKey('Dolce & Gabbana', 'The One for Men', 'EDP'), [theOne('The One')])).toBeNull());
+test('D&G: "The One" women não casa com "The One for Men" (públicos diferentes)', () =>
+  expect(findMatch(toKey('Dolce & Gabbana', 'The One', 'EDP', 'women'), [theOne('The One for Men')])).toBeNull());
+test('D&G: "The One for Men" casa com "The One for Men"', () =>
+  expect(findMatch(toKey('Dolce & Gabbana', 'The One for Men', 'EDP'), [theOne('The One for Men')])?.rawName).toBe(
+    'The One for Men',
+  ));
+test('Armani: "Code" men não casa com "Armani Code for Women"', () =>
+  expect(
+    findMatch(toKey('Armani', 'Code', 'EDP', 'men'), [
+      {
+        ...fragellaKey({ brand: 'Giorgio Armani', name: 'Armani Code for Women', oilType: 'Eau de Parfum' }),
+        imageUrl: 'img:code-women',
+        rawName: 'Armani Code for Women',
+      },
+    ]),
+  ).toBeNull());
+test('empate entre "for Men" e "for Women" sem gênero no alvo não casa', () =>
+  expect(
+    findMatch(toKey('Dolce & Gabbana', 'The One', 'EDP'), [theOne('The One for Men'), theOne('The One for Women')]),
+  ).toBeNull());

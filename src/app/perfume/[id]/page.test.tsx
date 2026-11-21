@@ -90,7 +90,7 @@ describe("página de detalhe", () => {
     getPerfume.mockResolvedValue(completo);
     await renderPage();
     expect(getPhoto).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "sauvage", concentration: "EDP" }),
+      expect.objectContaining({ id: "sauvage", concentration: "EDP", gender: "men" }),
       { allowFetch: true },
     );
 

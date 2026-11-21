@@ -1,10 +1,11 @@
-import type { MatchCandidate } from './match';
+import { audienceFromName, type MatchCandidate } from './match';
 import type { CachedPhoto, PhotoStore } from './store';
 
 // Armazenamento em memória, usado nos testes.
 export function createMemoryStore(): PhotoStore {
   const cache = new Map<string, CachedPhoto>();
-  const seen: MatchCandidate[] = [];
+  // Como no Supabase, o público não é guardado: é lido do nome original na hora.
+  const seen: Omit<MatchCandidate, 'audience' | 'audienceExplicit'>[] = [];
   const usage = new Map<string, number>();
 
   return {
@@ -23,7 +24,12 @@ export function createMemoryStore(): PhotoStore {
       cache.set(tenmlId, { status: entry.status, imageUrl: entry.imageUrl });
     },
     async findSeenByBrand(brand) {
-      return seen.filter((s) => s.brand === brand);
+      return seen
+        .filter((s) => s.brand === brand)
+        .map((s) => {
+          const audience = audienceFromName(s.rawName);
+          return { ...s, audience, audienceExplicit: audience !== null };
+        });
     },
     async addSeen(items) {
       for (const item of items) {

@@ -20,15 +20,21 @@ export function classificar(
 }
 
 // A vitrine não traz a concentração, então buscamos o detalhe (grátis, na 10ML)
-// antes de gastar a Fragella. Sem detalhe (ou com erro), o perfume é pulado.
+// antes de gastar a Fragella; dele vem também o gênero. Sem detalhe (ou com erro), o perfume é pulado.
 export async function assuntoComConcentracao(
   p: { id: string; name: string; house: string },
-  buscarDetalhe: (id: string) => Promise<{ concentration?: string } | null>,
+  buscarDetalhe: (id: string) => Promise<{ concentration?: string; gender?: string } | null>,
 ): Promise<PhotoSubject | null> {
   try {
     const detalhe = await buscarDetalhe(p.id);
     if (!detalhe) return null;
-    return { id: p.id, name: p.name, house: p.house, concentration: detalhe.concentration };
+    return {
+      id: p.id,
+      name: p.name,
+      house: p.house,
+      concentration: detalhe.concentration,
+      gender: detalhe.gender,
+    };
   } catch {
     return null;
   }
