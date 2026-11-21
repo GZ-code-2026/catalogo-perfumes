@@ -121,6 +121,7 @@ npm run dev          # servidor local em http://localhost:3000
 npm test             # testes unitários (Vitest)
 npm run test:e2e     # testes ponta a ponta (Playwright)
 npm run seed:photos  # preenche o cache de fotos da vitrine
+npm run renormalize:seen  # recalcula fragella_seen após mudar as regras de correspondência
 npm run build        # build de produção
 npm run lint         # checagem de código
 ```
@@ -130,7 +131,15 @@ npm run lint         # checagem de código
 
 ### Limpando o cache de fotos
 
-Se as regras de correspondência mudarem, apague o cache no **SQL Editor** do Supabase para as fotos serem procuradas de novo:
+Se as regras de correspondência mudarem, rode:
+
+```bash
+npm run renormalize:seen
+```
+
+Ele recalcula as chaves dos resultados da Fragella já guardados (`fragella_seen`) com as regras novas e apaga os "sem foto" do cache, para serem tentados de novo. **Não chama a Fragella** e não gasta cota. As fotos já encontradas continuam no cache.
+
+Para recomeçar do zero, apague o cache no **SQL Editor** do Supabase:
 
 ```sql
 delete from photo_cache;
