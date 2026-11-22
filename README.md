@@ -4,7 +4,7 @@ Um site em português onde você digita o nome de um perfume e vê a ficha dele:
 
 Projeto pessoal de portfólio, construído de ponta a ponta com o Claude Code: design, plano, código com testes, revisão e publicação.
 
-🔗 Site: (em breve)
+🔗 **Site:** https://catalogo-perfumes-ruby.vercel.app
 
 ## Prints
 
