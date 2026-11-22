@@ -216,3 +216,22 @@ test('empate entre "for Men" e "for Women" sem gênero no alvo não casa', () =>
   expect(
     findMatch(toKey('Dolce & Gabbana', 'The One', 'EDP'), [theOne('The One for Men'), theOne('The One for Women')]),
   ).toBeNull());
+
+// Apelidos Kilian / Jo Malone (seed real): grafias diferentes entre 10ML e Fragella.
+const fk = (brand: string, name: string, oilType: string) =>
+  ({ ...fragellaKey({ brand, name, oilType }), imageUrl: `img:${name}`, rawName: name });
+
+test('apelido: By Kilian e Kilian Paris são a mesma marca', () =>
+  expect(normalizeBrand('By Kilian')).toBe(normalizeBrand('Kilian Paris')));
+test('Kilian Paris: casa com "Kilian Love Don\'T Be Shy" e não com "Extreme"', () => {
+  const target = toKey('Kilian Paris', "Love, Don't Be Shy", 'EDP');
+  expect(fragellaKey({ brand: 'Kilian', name: "Kilian Love Don'T Be Shy", oilType: 'Eau de Parfum' }).name).toBe('love don t be shy');
+  expect(findMatch(target, [fk('Kilian', "Kilian Love Don'T Be Shy", 'Eau de Parfum')])).not.toBeNull();
+  expect(findMatch(target, [fk('Kilian', "Kilian Love Don'T Be Shy Extreme", 'Eau de Parfum')])).toBeNull();
+});
+test('Jo Malone London: casa com "Jo Malone English Pear & Freesia" e não com "Sweet Pea"', () => {
+  const target = toKey('Jo Malone London', 'English Pear & Freesia', 'Cologne');
+  expect(findMatch(target, [fk('Jo Malone', 'Jo Malone English Pear & Freesia', 'Cologne')])).not.toBeNull();
+  expect(findMatch(target, [fk('Jo Malone', 'Jo Malone English Pear & Sweet Pea', 'Cologne')])).toBeNull();
+  expect(toKey('Jo Malone London', 'Jo Malone English Pear & Freesia', 'Cologne').name).toBe('english pear freesia');
+});

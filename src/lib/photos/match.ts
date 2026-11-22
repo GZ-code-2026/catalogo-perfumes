@@ -40,6 +40,9 @@ const BRAND_ALIASES: Record<string, string> = {
   'giorgio armani': 'armani',
   'paco rabanne': 'rabanne',
   mfk: 'maison francis kurkdjian',
+  'kilian paris': 'kilian',
+  'by kilian': 'kilian',
+  'jo malone london': 'jo malone',
 };
 
 export function normalizeBrand(s: string): string {
