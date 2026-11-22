@@ -94,14 +94,7 @@ export async function searchPerfumes(p: {
   };
 }
 
-export async function getPerfume(id: string): Promise<PerfumeDetail | null> {
-  const url = `${baseUrl()}/perfumes/${encodeURIComponent(id)}?format=detailed`;
-  const data = await chamar(url, 86400);
-  if (!data || data.found === false || data.exact === false || !data.perfume) {
-    return null;
-  }
-  const p = data.perfume;
-  const similar: Cru[] = data.similar ?? [];
+function toDetail(p: Cru, similar: Cru[]): PerfumeDetail {
   return {
     ...toSummary(p),
     concentration: p.concentration ?? undefined,
@@ -114,4 +107,61 @@ export async function getPerfume(id: string): Promise<PerfumeDetail | null> {
     perfumers: p.perfumers ?? [],
     similar: similar.map(toSimilar),
   };
+}
+
+// Sigla da concentração -> como ela aparece no nome do perfume.
+const CONCENTRACOES: Record<string, string> = {
+  edp: "eau de parfum",
+  edt: "eau de toilette",
+  edc: "eau de cologne",
+};
+
+// Monta as buscas para achar o perfume a partir do id, da mais específica
+// para a mais solta. Ex.: "dior-sauvage-edt" ->
+// "dior sauvage eau de toilette", "sauvage eau de toilette", "eau de toilette".
+function buscasPorId(id: string): string[] {
+  const palavras = id.split("-");
+  const ultima = palavras[palavras.length - 1];
+  if (CONCENTRACOES[ultima]) palavras[palavras.length - 1] = CONCENTRACOES[ultima];
+  const frase = palavras.join(" ").split(" ");
+  return [0, 1, 2]
+    .map((cortar) => frase.slice(cortar).join(" "))
+    .filter((q) => q !== "");
+}
+
+// Procura o id nos resultados das buscas e devolve o resumo (nome + casa).
+async function acharResumoPorId(id: string): Promise<Cru | null> {
+  for (const q of buscasPorId(id)) {
+    const url = `${baseUrl()}/perfumes?q=${encodeURIComponent(q)}&limit=20`;
+    const data = await chamar(url, 86400);
+    const results: Cru[] = data?.results ?? [];
+    const achado = results.find((r) => r.id === id);
+    if (achado) return achado;
+  }
+  return null;
+}
+
+// Quirk da 10ML: buscar por id às vezes devolve OUTRO perfume (ex.: pedir
+// "dior-sauvage-edt" volta o EDP) dizendo que é exato. Então, quando o id
+// não confere, descobrimos o nome e a casa reais pela busca e consultamos
+// por nome + casa, que funciona. Nunca devolvemos um id diferente do pedido.
+async function resolverPorNome(id: string): Promise<PerfumeDetail | null> {
+  const resumo = await acharResumoPorId(id);
+  if (!resumo) return null;
+  const url =
+    `${baseUrl()}/perfumes/${encodeURIComponent(resumo.name)}` +
+    `?house=${encodeURIComponent(resumo.house)}&format=detailed`;
+  const data = await chamar(url, 86400);
+  if (!data || data.found === false || data.exact === false) return null;
+  if (data.perfume?.id !== id) return null;
+  return toDetail(data.perfume, data.similar ?? []);
+}
+
+export async function getPerfume(id: string): Promise<PerfumeDetail | null> {
+  const url = `${baseUrl()}/perfumes/${encodeURIComponent(id)}?format=detailed`;
+  const data = await chamar(url, 86400);
+  if (data?.found && data.exact !== false && data.perfume?.id === id) {
+    return toDetail(data.perfume, data.similar ?? []);
+  }
+  return resolverPorNome(id);
 }

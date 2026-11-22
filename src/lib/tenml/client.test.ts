@@ -52,17 +52,17 @@ describe("getPerfume", () => {
   });
 
   it("devolve null quando exact é false", async () => {
-    fetchMock.mockResolvedValue(resposta({ ...detail, exact: false }));
+    fetchMock.mockImplementation(async () => resposta({ ...detail, exact: false }));
     expect(await getPerfume("sauvage")).toBeNull();
   });
 
   it("devolve null quando found é false", async () => {
-    fetchMock.mockResolvedValue(resposta({ found: false }));
+    fetchMock.mockImplementation(async () => resposta({ found: false }));
     expect(await getPerfume("nada")).toBeNull();
   });
 
   it("devolve null em HTTP 404", async () => {
-    fetchMock.mockResolvedValue(resposta({}, 404));
+    fetchMock.mockImplementation(async () => resposta({}, 404));
     expect(await getPerfume("nada")).toBeNull();
   });
 
@@ -90,6 +90,76 @@ describe("getPerfume", () => {
     fetchMock.mockResolvedValue(resposta({ ...detail, perfume }));
     const p = await getPerfume("dior-sauvage-edp");
     expect(p?.pyramid).toEqual({ top: ["bergamot"], heart: [], base: [] });
+  });
+});
+
+describe("getPerfume com id trocado pela 10ML", () => {
+  const edt = {
+    ...detail,
+    perfume: { ...detail.perfume, id: "dior-sauvage-edt", name: "Sauvage Eau de Toilette" },
+    similar: detail.similar.slice(0, 2),
+  };
+  const baseDet = "https://mcp.10ml.com/api/v1/perfumes";
+  const urlIdErrado = `${baseDet}/dior-sauvage-edt?format=detailed`;
+  const urlBusca = (q: string) => `${baseDet}?q=${encodeURIComponent(q)}&limit=20`;
+  const urlNome = `${baseDet}/Sauvage%20Eau%20de%20Toilette?house=Dior&format=detailed`;
+  const resumoEdt = { id: "dior-sauvage-edt", name: "Sauvage Eau de Toilette", house: "Dior" };
+
+  // Simula a API: cada URL tem sua resposta; o resto dá 404.
+  function simular(respostas: Record<string, unknown>) {
+    fetchMock.mockImplementation(async (url: string) =>
+      url in respostas ? resposta(respostas[url]) : resposta({}, 404),
+    );
+  }
+  const chamadas = () => fetchMock.mock.calls.map((c) => String(c[0]));
+
+  it("caminho feliz faz uma única chamada", async () => {
+    fetchMock.mockImplementation(async () => resposta(detail));
+    await getPerfume("dior-sauvage-edp");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolve pelo nome e pela casa quando o id volta trocado (busca a)", async () => {
+    simular({
+      [urlIdErrado]: detail,
+      [urlBusca("dior sauvage eau de toilette")]: { results: [resumoEdt] },
+      [urlNome]: edt,
+    });
+    const p = await getPerfume("dior-sauvage-edt");
+    expect(p?.id).toBe("dior-sauvage-edt");
+    expect(p?.similar).toHaveLength(2);
+    expect(chamadas()).toEqual([
+      urlIdErrado,
+      urlBusca("dior sauvage eau de toilette"),
+      urlNome,
+    ]);
+  });
+
+  it("se a busca a falha, a busca b (sem a primeira palavra) resolve", async () => {
+    simular({
+      [urlIdErrado]: detail,
+      [urlBusca("dior sauvage eau de toilette")]: { results: [] },
+      [urlBusca("sauvage eau de toilette")]: { results: [resumoEdt] },
+      [urlNome]: edt,
+    });
+    const p = await getPerfume("dior-sauvage-edt");
+    expect(p?.id).toBe("dior-sauvage-edt");
+    expect(chamadas()).toContain(urlBusca("sauvage eau de toilette"));
+  });
+
+  it("nenhuma busca acha o id: devolve null (nunca o perfume errado)", async () => {
+    simular({ [urlIdErrado]: detail });
+    expect(await getPerfume("dior-sauvage-edt")).toBeNull();
+    expect(chamadas().some((u) => u.includes("?house="))).toBe(false);
+  });
+
+  it("chamada por nome devolvendo outro id: null", async () => {
+    simular({
+      [urlIdErrado]: detail,
+      [urlBusca("dior sauvage eau de toilette")]: { results: [resumoEdt] },
+      [urlNome]: detail,
+    });
+    expect(await getPerfume("dior-sauvage-edt")).toBeNull();
   });
 });
 
