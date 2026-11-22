@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/*
+  NOTAS DE DESIGN — "Vetiver & latão"
+  ------------------------------------
+  Ideia: uma boutique de perfumaria de vidro verde e metal dourado.
+  Fundo de porcelana esverdeada (claro) ou verde-garrafa profundo (escuro),
+  tinta verde-escura em vez de preto, e UM acento: latão envelhecido.
+  As fotos dos frascos são webp sem fundo e "flutuam" direto sobre o fundo
+  (sem caixas brancas). Evite cards cinza com sombra padrão.
+
+  Paleta (claro / escuro)           classe Tailwind
+    paper    #ecefea / #121a16      bg-paper      fundo da página
+    surface  #f6f8f3 / #1a241f      bg-surface    áreas elevadas (busca, painéis)
+    ink      #18241e / #e4eae2      text-ink      texto principal
+    ink-soft #4d5c54 / #9fafa5      text-ink-soft texto secundário
+    line     #cdd5cb / #2b3832      border-line   linhas finas, divisores
+    brass    #85652a / #cfae6b      text-brass    acento: links, foco, detalhes
+  Cores das famílias olfativas: familyColor() em components/BottlePlaceholder.
+
+  Tipografia
+    font-display  Bodoni Moda (eixo opsz) — títulos, nome dos perfumes. Use
+                  peso 400–500; itálico para o nome da marca/assinatura.
+    font-sans     Jost — texto, rótulos, botões. Peso 400 (texto), 500 (ênfase).
+    Escala (px): 12 · 14 · 16 · 18 · 21 · 24 · 36 · 48 · 60 — Tailwind: text-xs,
+    sm, base, lg, [21px], 2xl, 4xl, 5xl, 6xl. Títulos com tracking-tight.
+    Sem rótulos em CAIXA ALTA espaçada; use frase normal (sentence case).
+
+  Espaçamento e layout
+    Mobile-first. Margem lateral px-5 (20px) no celular, sm:px-8 acima.
+    Conteúdo em max-w-6xl centralizado; texto corrido até ~65 caracteres.
+    Ritmo vertical em múltiplos de 4px (Tailwind padrão); seções com py-12/py-16.
+    Cantos: rounded-sm em controles; frascos e fotos sem caixa.
+*/
+
+:root {
+  --paper: #ecefea;
+  --surface: #f6f8f3;
+  --ink: #18241e;
+  --ink-soft: #4d5c54;
+  --line: #cdd5cb;
+  --brass: #85652a;
+  --halo: rgba(133, 101, 42, 0.07);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #121a16;
+    --surface: #1a241f;
+    --ink: #e4eae2;
+    --ink-soft: #9fafa5;
+    --line: #2b3832;
+    --brass: #cfae6b;
+    --halo: rgba(207, 174, 107, 0.06);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-brass: var(--brass);
+  --font-display: var(--font-bodoni), "Didot", Georgia, serif;
+  --font-sans: var(--font-jost), "Futura", system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--paper);
+  /* brilho suave no topo, como luz de vitrine */
+  background-image: radial-gradient(120% 60% at 50% 0%, var(--halo), transparent 70%);
+  background-repeat: no-repeat;
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--brass);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+}

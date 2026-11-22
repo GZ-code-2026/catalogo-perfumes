@@ -69,7 +69,7 @@ e2e/ mock-server.mjs  fixtures/*.json  busca.spec.ts
 
 ---
 
-### Tarefa 0: Ambiente e esqueleto do projeto
+### Task 0: Ambiente e esqueleto do projeto
 
 **Files:**
 - Create: projeto Next.js na raiz do repositório (que já existe, com `docs/`), `vitest.config.ts`, `vitest.setup.ts`, `.env.example`, `src/lib/smoke.test.ts`
@@ -87,7 +87,7 @@ e2e/ mock-server.mjs  fixtures/*.json  busca.spec.ts
 
 ---
 
-### Tarefa 1: Normalização e correspondência de nomes
+### Task 1: Normalização e correspondência de nomes
 
 **Files:**
 - Create: `src/lib/photos/match.ts`
@@ -149,7 +149,7 @@ test('jaroWinkler', () => { expect(jaroWinkler('martha', 'marhta')).toBeCloseTo(
 
 ---
 
-### Tarefa 2: Cliente da 10ML
+### Task 2: Cliente da 10ML
 
 **Files:**
 - Create: `src/lib/tenml/types.ts`, `src/lib/tenml/client.ts`
@@ -195,7 +195,7 @@ export interface SearchPage { results: PerfumeSummary[]; nextCursor: string | nu
 
 ---
 
-### Tarefa 3: Cliente da Fragella
+### Task 3: Cliente da Fragella
 
 **Files:**
 - Create: `src/lib/fragella/client.ts`
@@ -216,7 +216,7 @@ export interface SearchPage { results: PerfumeSummary[]; nextCursor: string | nu
 
 ---
 
-### Tarefa 4: Armazenamento do cache de fotos
+### Task 4: Armazenamento do cache de fotos
 
 **Files:**
 - Create: `supabase/migrations/0001_init.sql`, `src/lib/photos/store.ts`, `src/lib/photos/memory-store.ts`, `src/lib/photos/supabase-store.ts`
@@ -251,7 +251,7 @@ export interface PhotoStore {
 
 ---
 
-### Tarefa 5: Detecção de robôs
+### Task 5: Detecção de robôs
 
 **Files:**
 - Create: `src/lib/bots.ts`
@@ -268,7 +268,7 @@ export interface PhotoStore {
 
 ---
 
-### Tarefa 6: Serviço de fotos
+### Task 6: Serviço de fotos
 
 **Files:**
 - Create: `src/lib/photos/service.ts`, `src/lib/photos/index.ts`
@@ -324,7 +324,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 7: Dicionário de tradução
+### Task 7: Dicionário de tradução
 
 **Files:**
 - Create: `scripts/collect-terms.ts`, `data/terms-en.json` (gerado), `src/lib/i18n/pt-terms.json`, `src/lib/i18n/terms.ts`
@@ -347,7 +347,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 8: Identidade visual, layout e rodapé
+### Task 8: Identidade visual, layout e rodapé
 
 **Files:**
 - Create: `src/components/Footer.tsx`, `src/components/BottlePlaceholder.tsx`
@@ -372,7 +372,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 9: Componentes da ficha e dos cards
+### Task 9: Componentes da ficha e dos cards
 
 **Files:**
 - Create: `src/components/PerfumeImage.tsx` (client), `src/components/PerfumeCard.tsx`, `src/components/Pyramid.tsx`, `src/components/Accords.tsx`, `src/lib/photos/cards.ts`
@@ -402,7 +402,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 10: Início: busca com sugestões e vitrine
+### Task 10: Início: busca com sugestões e vitrine
 
 **Files:**
 - Create: `src/app/api/sugestoes/route.ts`, `src/components/SearchBox.tsx` (client)
@@ -425,7 +425,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 11: Página de resultados
+### Task 11: Página de resultados
 
 **Files:**
 - Create: `src/app/busca/page.tsx`, `src/app/busca/loading.tsx`, `src/app/api/busca/route.ts`, `src/components/LoadMore.tsx` (client), `src/app/error.tsx`
@@ -448,7 +448,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 12: Página de detalhe
+### Task 12: Página de detalhe
 
 **Files:**
 - Create: `src/app/perfume/[id]/page.tsx`, `src/app/perfume/[id]/not-found.tsx`, `src/app/perfume/[id]/loading.tsx`
@@ -469,7 +469,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 13: robots.txt, script de fotos da vitrine e banco real
+### Task 13: robots.txt, script de fotos da vitrine e banco real
 
 **Files:**
 - Create: `src/app/robots.ts`, `scripts/seed-photos.ts`
@@ -487,7 +487,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 14: Teste ponta a ponta
+### Task 14: Teste ponta a ponta
 
 **Files:**
 - Create: `playwright.config.ts`, `e2e/mock-server.mjs`, `e2e/fixtures/search-sauvage.json`, `e2e/fixtures/detail-dior-sauvage-edp.json`, `e2e/fixtures/iconic.json`, `e2e/busca.spec.ts`
@@ -502,7 +502,7 @@ Algoritmo de `getPhoto` (siga a ordem):
 
 ---
 
-### Tarefa 15: README e publicação
+### Task 15: README e publicação
 
 **Files:**
 - Create/Modify: `README.md`

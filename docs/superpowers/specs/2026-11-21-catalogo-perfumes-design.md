@@ -104,13 +104,21 @@ Preferência de imagem: `Image URL Transparent` (webp sem fundo, que combina mel
 
 ### Correspondência entre 10ML e Fragella
 
-Normalização: minúsculas, sem acentos, sem pontuação e espaços colapsados. **Antes** de normalizar, extrai a concentração do nome (`eau de parfum`/`edp`, `eau de toilette`/`edt`, `parfum`, `extrait`, `cologne`/`edc`, `elixir` etc.) para um campo próprio. Depois remove esses termos do nome, e também o nome da marca, se estiver repetido. Usa uma tabela pequena de apelidos de marca (ex.: `ysl` = `yves saint laurent`) — decisão minha.
+Normalização: minúsculas, sem acentos, sem pontuação e espaços colapsados. **Antes** de normalizar, extrai a concentração do nome (`eau de parfum`/`edp`, `eau de toilette`/`edt`, `parfum`, `extrait`, `cologne`/`edc`) para um campo próprio. `elixir` e `intense` **não** são concentrações: ficam no nome ("Sauvage Elixir" é outro perfume). Depois remove esses termos do nome, e também o nome da marca, se estiver repetido. Usa uma tabela pequena de apelidos de marca (ex.: `ysl` = `yves saint laurent`) — decisão minha.
+
+*(Revisado após o teste com dados reais da Fragella, que trazem nomes como "Christian Dior Dior Sauvage Edp":)*
+- Apelidos de marca: lista explícita, sem semelhança automática — `ysl`, `d g`/`dolce and gabbana`, `ck`, `jpg`, `christian dior` → `dior`, `giorgio armani` → `armani`, `paco rabanne` → `rabanne`, `mfk` → `maison francis kurkdjian`. Também `kilian paris` e `by kilian` → `kilian`, `jo malone london` → `jo malone`.
+- A marca é tirada do **começo** do nome repetidamente, em qualquer forma (como veio, forma oficial e apelidos): com marca "Dior", "christian dior dior sauvage" → "sauvage". O nome nunca fica vazio. Erros de digitação ("chirstian") não são tirados — continuam sem casar, o lado seguro.
+- Descritores de público são tirados só do **final** do nome. Os neutros ("unisex", "for men and women", "for women and men") somem sem marcar nada. "for men"/"for women" saem do nome mas viram o **público** da chave (`men`/`women`, marcado como explícito). "pour homme", "pour femme", "homme", "femme" e "pour homme et femme" ficam (podem ser parte do nome).
+- **Público (revisão 2):** na Fragella, o público vem só do nome. Na 10ML, vem do nome ("for men"/"for women", explícito) ou, se o nome não disser, do campo `gender` (`men`/`women`; `unisex` ou vazio = desconhecido; não explícito). Não casa se os dois públicos forem conhecidos e diferentes, nem se o nome da 10ML disser o público e o candidato não tiver (ex.: "The One for Men" não casa com "The One"). Público vindo só do `gender` não exige que o candidato tenha um. O público não tem coluna em `fragella_seen`: é lido de `raw_name` na hora.
+- Na Fragella, a concentração escrita no **nome** vence o `OilType` (que só vale se o nome não tiver). Na 10ML continua: campo `concentration` primeiro, depois o nome.
 
 Regra de casamento (conservadora, de acordo com o anti-objetivo):
 - A marca normalizada precisa ser **igual** (depois dos apelidos).
-- O nome normalizado precisa ser **igual**, **ou** ter similaridade ≥ 0,9 (Jaro-Winkler ou equivalente) **e** a mesma quantidade de palavras.
-- **Concentração (decisão do dono, para não mostrar frasco de versão irmã):** a concentração da 10ML vem do campo `concentration` ou, se faltar, do nome. A da Fragella vem de `OilType` ou do nome. Se as duas forem conhecidas e **diferentes**, **não casa**. Se só uma for conhecida, ou nenhuma, a concentração não bloqueia o casamento.
-- Se mais de um resultado casar, escolhe o de maior similaridade. Se empatar, não casa.
+- O nome normalizado precisa ser **igual**, **ou** ter a mesma quantidade de palavras, com todas iguais exceto **no máximo uma**, que pode ter só um erro de digitação (distância de Levenshtein ≤ 1, ambas com 4 ou mais letras). Nomes vazios nunca casam. *(Revisado na implementação: a regra original, Jaro-Winkler ≥ 0,9 no nome inteiro, aceitava "Acqua di Gio" como "Acqua di Gioia".)*
+- **Concentração (decisão do dono, para não mostrar frasco de versão irmã):** a concentração da 10ML vem do campo `concentration` ou, se faltar, do nome. A da Fragella vem do **nome** ou, se o nome não tiver, de `OilType`. Se as duas forem conhecidas e **diferentes**, **não casa**. Se só uma for conhecida, ou nenhuma, a concentração não bloqueia o casamento.
+- Se mais de um resultado casar, escolhe o de maior similaridade. Se empatar, só casa quando é o mesmo produto: mesma imagem, ou mesma chave (marca, nome, concentração e público) fotografada mais de uma vez — aí fica o primeiro recebido. Empate entre chaves diferentes não casa.
+- Ao mudar estas regras, rode `npm run renormalize:seen`: recalcula as chaves de `fragella_seen` (sem chamar a Fragella) e apaga os "sem foto" do cache.
 
 Essa função é pura e é a mais testada do projeto. Casos reais:
 - "Sauvage" (EDT) vs "Sauvage Eau de Parfum" → **não** casa.
